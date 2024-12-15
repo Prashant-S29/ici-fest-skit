@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider  = "postgresql"
+    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+    // Further reading:
+    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+// Registration Type
+enum RegistrationType {
+    TEAM
+    INDIVIDUAL
+    BOTH
+}
+
+// Event Category
+enum EventCategory {
+    EVENT
+    WORKSHOP
+    EXHIBITION
+}
+
+// Branch
+enum Branch {
+    CSE
+    CSE_AI
+    CSE_DS
+    CSE_IOT
+    IT
+    ECE
+    CE
+    EE
+    ME
+}
+
+// Registration Status
+enum RegistrationStatus {
+    UPCOMING
+    OPEN
+    CLOSED
+}
+
+// Event Registration Form
+model EventRegistrationForm {
+    id String @id @default(uuid())
+
+    title      String
+    formURL    String
+    formAmount Int
+
+    // Metadata
+    isActive Boolean @default(true)
+    status   Int     @default(0)
+
+    // Relation with Event
+    event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+    eventId String
+}
+
+// Event Coordinator
+model EventCoordinator {
+    id String @id @default(uuid())
+
+    name   String
+    mobile String
+    branch Branch
+    year   Int
+
+    // Relation with Event
+    event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+    eventId String
+}
+
+// Event Schedule
+model EventSchedule {
+    id String @id @default(uuid())
+
+    title     String
+    date      String
+    startTime Int
+    endTime   Int
+    venue     String
+
+    // Relation with Event
+    event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+    eventId String
+}
+
+// Event
+model Event {
+    id String @id @default(uuid())
+
+    // Dashboard
+    title      String
+    slug       String @unique
+    dbPassword String
+
+    // Basic Info
+    shortDescription String?
+    description      String?
+    coverImage       String?
+    category         EventCategory @default(EVENT)
+    whatsappGroupURL String?
+
+    // Brief
+    images String[]
+
+    // Schedule
+    schedule EventSchedule[]
+
+    // Registration
+    durationInDays   Int
+    registrationType RegistrationType
+    registrationForm EventRegistrationForm[]
+
+    // Coordinators
+    coordinators EventCoordinator[]
+
+    // Controllers Config
+    registrationStatus RegistrationStatus
+    isHidden           Boolean            @default(false)
+}
+
+enum Role {
+    ADMIN
+    COORDINATOR
+    USER
+}
+
+model User {
+    id            String    @id @default(uuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    role          Role      @default(USER)
+    accounts      Account[]
+    sessions      Session[]
+}
+
+model Admin {
+    id String @id @default(uuid())
+
+    adminId  String @unique
+    password String
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+
+// Necessary for Next auth
+model Account {
+    id                       String  @id @default(uuid())
+    userId                   String
+    type                     String
+    provider                 String
+    providerAccountId        String
+    refresh_token            String? // @db.Text
+    access_token             String? // @db.Text
+    expires_at               Int?
+    token_type               String?
+    scope                    String?
+    id_token                 String? // @db.Text
+    session_state            String?
+    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    refresh_token_expires_in Int?
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(uuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
