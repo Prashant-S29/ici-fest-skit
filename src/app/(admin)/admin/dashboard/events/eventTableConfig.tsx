@@ -32,9 +32,7 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
     header: "Title",
     cell: ({ row }) => {
       const { title } = row.original;
-      return (
-        <p className="line-clamp-1 w-[150px] pr-[30px] font-medium">{title}</p>
-      );
+      return <p className="line-clamp-1 pr-[30px] font-medium">{title}</p>;
     },
   },
 
@@ -168,7 +166,7 @@ const TextWithCopyIcon = ({
       onMouseEnter={() => setShowCopyIcon(true)}
       onMouseLeave={() => setShowCopyIcon(false)}
     >
-      <p className="line-clamp-1 max-w-[200px] font-medium">
+      <p className="line-clamp-1 py-1 max-w-[200px] font-medium">
         {hideText ? convertPasswordToDots(text) : text}
       </p>
       <div className="w-[10px]">

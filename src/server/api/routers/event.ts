@@ -1,18 +1,15 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-import {
-  createTRPCRouter,
-  // protectedProcedure,
-  publicProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 import {
   CreateEventSchema,
+  PartialUpdateEventScheduleSchema,
   PartialUpdateEventSchema,
 } from "@/schema/event.schema";
 import type { Event } from "@prisma/client";
 import { z } from "zod";
 import type { tableConfigDataType } from "@/app/(admin)/admin/dashboard/events/eventTableConfig";
-import { env } from "@/env";
+import { getEndpoint } from "@/utils/getEndpoint";
 
 // TODO: add validation, protectedProcedure
 
@@ -23,7 +20,7 @@ export type GetAllEventsResponse = {
 
 export const eventRouter = createTRPCRouter({
   // get all events
-  getAllEvents: publicProcedure.query(
+  getAllEvents: protectedProcedure.query(
     async ({ ctx }): Promise<GetAllEventsResponse> => {
       const events = await ctx.db.event.findMany({
         include: {
@@ -39,10 +36,7 @@ export const eventRouter = createTRPCRouter({
         title: data.title,
         eventId: data.slug,
         eventDbPassword: data.dbPassword,
-        eventDbURL:
-          env.NODE_ENV === "production"
-            ? `https://icifest.skit.ac.in/event-dashboard/${data.slug}`
-            : `http://localhost:3000/event-dashboard/${data.slug}`,
+        eventDbURL: getEndpoint(`coordinator/dashboard/${data.slug}`),
         isHidden: data.isHidden,
         registrationStatus: data.registrationStatus,
         schedule: data.schedule.map((schedule) => ({
@@ -64,7 +58,7 @@ export const eventRouter = createTRPCRouter({
   ),
 
   // get event by id
-  getEventById: publicProcedure
+  getEventById: protectedProcedure
     .input(z.object({ id: z.string().min(1, "id is required") }))
     .query(async ({ ctx, input }) => {
       const event = await ctx.db.event.findUnique({
@@ -81,7 +75,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // get event by slug
-  getEventBySlug: publicProcedure
+  getEventBySlug: protectedProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
       const event = await ctx.db.event.findUnique({
@@ -115,6 +109,7 @@ export const eventRouter = createTRPCRouter({
         title: event.title,
         coordinators: event.coordinators || [],
         registrationType: event.registrationType,
+
         id: event.id,
       };
 
@@ -122,7 +117,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // create event
-  createEvent: publicProcedure
+  createEvent: protectedProcedure
     .input(CreateEventSchema)
     .mutation(async ({ ctx, input }) => {
       // return
@@ -161,6 +156,21 @@ export const eventRouter = createTRPCRouter({
               create: input.coordinators,
             },
 
+            // coordinator managed data
+            coordinatorManagedData: {
+              create: {
+                brochure: "",
+                coverImage: "",
+                images: [],
+                judgementCriteria: "",
+                disqualificationCriteria: "",
+                whatsappGroupURL: "",
+                shortDescription: "",
+                description: "",
+                materialsProvided: "",
+              },
+            },
+
             // controllers config
             registrationStatus: input.registrationStatus,
             isHidden: input.isHidden,
@@ -181,45 +191,10 @@ export const eventRouter = createTRPCRouter({
       }
     }),
 
-  // // update event by id
-  // updateEventById: publicProcedure
-  //   .input(PartialUpdateEventSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     console.log(input);
-
-  //     const { schedule, registrationForm, coordinators, id, ...rest } = input;
-
-  //     return ctx.db.event.update({
-  //       where: {
-  //         id: id,
-  //       },
-  //       data: {
-  //         id: id,
-  //         ...rest, // Update the rest of the fields
-  //         // schedule
-  //         schedule: {
-  //           deleteMany: {}, // Deletes all existing schedules (optional based on requirements)
-  //           create: schedule, // Add new schedules
-  //         },
-
-  //         // registration
-  //         registrationForm: {
-  //           deleteMany: {}, // Deletes all existing registration forms (optional based on requirements)
-  //           create: registrationForm,
-  //         },
-
-  //         // coordinators
-  //         coordinators: {
-  //           deleteMany: {}, // Deletes all existing coordinators (optional based on requirements)
-  //           create: coordinators,
-  //         },
-  //       },
-  //     });
-  //   }),
-
-  updateEventById: publicProcedure
+  updateEventById: protectedProcedure
     .input(PartialUpdateEventSchema)
     .mutation(async ({ ctx, input }) => {
+      console.log("input", input);
       const { schedule, registrationForm, coordinators, id, ...rest } = input;
 
       return ctx.db.event.update({
@@ -256,8 +231,48 @@ export const eventRouter = createTRPCRouter({
       });
     }),
 
+  updateEventBySlug: protectedProcedure
+    .input(PartialUpdateEventSchema)
+    .mutation(async ({ ctx, input }) => {
+      console.log("input", input);
+      const { schedule, registrationForm, coordinators, id, ...rest } = input;
+
+      return ctx.db.event.update({
+        where: {
+          slug: input.slug, // The event ID to be updated
+        },
+        data: {
+          ...rest, // Update the remaining fields for the event
+
+          // Schedule: Clear existing and add new entries
+          schedule: {
+            deleteMany: {}, // Deletes all existing schedules (optional, filters can be added)
+            create: schedule?.map(
+              ({ id: _, eventId: __, ...restSchedule }) => restSchedule,
+            ), // Map to exclude id and eventId
+          },
+
+          // Registration Forms: Clear existing and add new entries
+          registrationForm: {
+            deleteMany: {}, // Deletes all existing registration forms
+            create: registrationForm?.map(
+              ({ id: _, eventId: __, ...restForm }) => restForm,
+            ), // Exclude id and eventId
+          },
+
+          // Coordinators: Clear existing and add new entries
+          coordinators: {
+            deleteMany: {}, // Deletes all existing coordinators
+            create: coordinators?.map(
+              ({ id: _, eventId: __, ...restCoordinator }) => restCoordinator,
+            ), // Exclude id and eventId
+          },
+        },
+      });
+    }),
+
   // delete event by slug
-  deleteEventBySlug: publicProcedure
+  deleteEventBySlug: protectedProcedure
     .input(z.object({ slug: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.delete({
@@ -268,7 +283,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // delete multiple events by ids
-  deleteMultipleEventsByIds: publicProcedure
+  deleteMultipleEventsByIds: protectedProcedure
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.deleteMany({
@@ -281,7 +296,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // hide event by slug
-  hideEventBySlug: publicProcedure
+  hideEventBySlug: protectedProcedure
     .input(z.object({ slug: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.update({
@@ -295,7 +310,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // hide multiple events by ids
-  hideMultipleEventsByIds: publicProcedure
+  hideMultipleEventsByIds: protectedProcedure
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.updateMany({
@@ -311,7 +326,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // unhide event by slug
-  unhideEventBySlug: publicProcedure
+  unhideEventBySlug: protectedProcedure
     .input(z.object({ slug: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.update({
@@ -325,7 +340,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // unhide multiple events by ids
-  unhideMultipleEventsByIds: publicProcedure
+  unhideMultipleEventsByIds: protectedProcedure
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.updateMany({
@@ -338,5 +353,18 @@ export const eventRouter = createTRPCRouter({
           isHidden: true,
         },
       });
+    }),
+
+  // get coordinator managed data by id
+  getCoordinatorManagedDataById: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const coordinatorManagedData =
+        await ctx.db.coordinatorManagedData.findUnique({
+          where: {
+            id: input.id,
+          },
+        });
+      return coordinatorManagedData ?? null;
     }),
 });

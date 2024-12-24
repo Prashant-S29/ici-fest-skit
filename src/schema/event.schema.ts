@@ -92,34 +92,67 @@ export const EventScheduleSchema = z.object({
     .nullable(),
 });
 
+// Coordinator Managed Data Schema
+export const CoordinatorManagedData = z.object({
+  id: z.string().uuid().optional(),
+  // about
+  shortDescription: z
+    .string()
+    .min(50, "Atleast 50 words are required.")
+    .max(100, "Maximum 100 words are allowed."),
+  description: z
+    .string()
+    .min(100, "Atleast 100 words are required.")
+    .max(400, "Maximum 200 words are allowed."),
+
+  // assets
+  whatsappGroupURL: z.string().url("WhatsApp group URL must be a valid URL."),
+  brochure: z.string().url("Brochure URL must be a valid URL."),
+  coverImage: z.string().min(1, "Cover image is required."),
+  images: z
+    .array(z.string())
+    .min(2, "Add at least 2 images.")
+    .max(5, "Maximum 5 images are allowed."),
+
+  // rules
+  judgementCriteria: z.string().optional(),
+  disqualificationCriteria: z.string().optional(),
+});
+
 // Main Event Schema
 export const EventSchema = z.object({
   id: z.string().uuid().optional(),
 
   // Dashboard
+  title: z
+    .string()
+    .min(4, "Title must be at least 4 characters long.")
+    .max(20, "Title must be at most 20 characters long."),
   slug: z.string().min(1, "Slug is required."),
   dbPassword: z
     .string()
     .min(6, "Database password must be at least 6 characters long."),
 
-  // Basic info
-  title: z
-    .string()
-    .min(4, "Title must be at least 4 characters long.")
-    .max(20, "Title must be at most 20 characters long."),
+  category: EventCategorySchema,
+
+  // about
   shortDescription: z.string().optional(),
   description: z.string().optional(),
-  coverImage: z.string().optional(),
-  category: EventCategorySchema,
-  whatsappGroupURL: z.string().optional(),
 
-  // Brief
-  images: z.array(z.string()).optional(),
+  // assets
+  whatsappGroupURL: z.string().optional(),
+  brochure: z.string(),
+  coverImage: z.string(),
+  images: z.array(z.string()),
+
+  // rules
+  judgementCriteria: z.string().optional(),
+  disqualificationCriteria: z.string().optional(),
 
   // Schedule
   schedule: z
     .array(EventScheduleSchema)
-    .min(1, "At least one schedule is required.")
+    // .min(1, "At least one schedule is required.")
     .max(5, "Maximum 5 schedules are allowed."),
 
   // Registration
@@ -130,13 +163,13 @@ export const EventSchema = z.object({
   registrationType: RegistrationTypeSchema,
   registrationForm: z
     .array(EventRegistrationFormSchema)
-    .min(1, "At least one Registration Form is required.")
+    // .min(1, "At least one Registration Form is required.")
     .max(7, "Maximum 7 Registration Forms are allowed."),
 
   // Coordinators
   coordinators: z
     .array(EventCoordinatorSchema)
-    .min(1, "At least one coordinator is required.")
+    // .min(1, "At least one coordinator is required.")
     .max(3, "Maximum 3 coordinators are allowed."),
 
   // Controllers config
@@ -154,6 +187,16 @@ export const CreateEventCoordinatorSchema = EventCoordinatorSchema.omit({
 export const CreateEventScheduleSchema = EventScheduleSchema.omit({ id: true });
 export const CreateEventSchema = EventSchema.omit({ id: true });
 
+export const CreateCoordinatorManagedData = CoordinatorManagedData.omit({
+  id: true,
+});
+
+// new Schedule Schema
+export const CreateNewEventScheduleSchema = EventScheduleSchema.omit({
+  id: true,
+  eventId: true,
+});
+
 // Partial Update Schemas
 export const PartialUpdateEventRegistrationFormSchema =
   EventRegistrationFormSchema.partial();
@@ -161,3 +204,5 @@ export const PartialUpdateEventCoordinatorSchema =
   EventCoordinatorSchema.partial();
 export const PartialUpdateEventScheduleSchema = EventScheduleSchema.partial();
 export const PartialUpdateEventSchema = EventSchema.partial();
+export const PartialUpdateCoordinatorManagedData =
+  CoordinatorManagedData.partial();

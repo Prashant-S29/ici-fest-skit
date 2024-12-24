@@ -25,9 +25,10 @@ import { X } from "lucide-react";
 // import { Button, ToastProps } from "@/components/ui";
 
 // Schema
-import type { CreateEventSchema } from "@/schema/event.schema";
+import type { CreateEventInfoSchema } from "@/schema/event.schema";
 import { useToast } from "@/hooks";
 import { useImageUploader } from "@/global/hooks";
+import { ImagePreview } from "@/components/common";
 
 interface FileWithPreview extends File {
   preview: string;
@@ -37,7 +38,7 @@ interface ImageUploadFieldProps {
   maxFiles?: number;
   minFiles?: number;
   maxSizePerFileInMB?: number;
-  form: UseFormReturn<z.infer<typeof CreateEventSchema>, any, undefined>;
+  form: UseFormReturn<z.infer<typeof CreateEventInfoSchema>, any, undefined>;
   isFormSubmitting: boolean;
 }
 
@@ -46,7 +47,7 @@ interface ImageUploadFieldProps {
 interface UseImageUploadFieldProps {
   maxFiles: number;
   maxSizePerFileInMB: number;
-  setValue: UseFormSetValue<z.infer<typeof CreateEventSchema>>;
+  setValue: UseFormSetValue<z.infer<typeof CreateEventInfoSchema>>;
   setStagedFiles: (files: FileWithPreview[]) => void;
   stagedFiles: FileWithPreview[];
   images: FileWithPreview[];
@@ -147,7 +148,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   isFormSubmitting,
 }) => {
   const { control, setValue } = useFormContext<
-    z.infer<typeof CreateEventSchema>,
+    z.infer<typeof CreateEventInfoSchema>,
     any,
     undefined
   >();
@@ -229,14 +230,16 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                 <div className="mt-4 grid grid-cols-5 gap-4">
                   {stagedFiles.map((file) => (
                     <div key={file.preview} className="group relative">
-                      <Image
-                        src={file.preview}
-                        alt={file.name || "helloWorld"}
-                        width={200}
-                        height={200}
-                        className="h-24 w-full rounded-lg border object-cover"
-                        onLoad={() => URL.revokeObjectURL(file.preview)}
-                      />
+                      <ImagePreview src={file.preview} key={file.preview}>
+                        <Image
+                          src={file.preview}
+                          alt={file.name || "helloWorld"}
+                          width={200}
+                          height={200}
+                          className="h-24 w-full rounded-lg border object-cover"
+                          // onLoad={() => URL.revokeObjectURL(file.preview)}
+                        />
+                      </ImagePreview>
                       <button
                         type="button"
                         onClick={() => removeFile(file)}

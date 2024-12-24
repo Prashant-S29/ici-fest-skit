@@ -17,17 +17,17 @@ export const Navbar: React.FC = () => {
       <div className="flex items-center gap-4">
         <div className="max-w-[200px]">
           <div className="flex w-full justify-center">
-            <div className="size-[50px] rounded-lg bg-gray-200" />
+            <div className="size-[40px] rounded-sm bg-gray-200" />
           </div>
-          <p className="mt-1 text-center text-xs font-semibold">
+          <p className="mt-1 text-center text-[10px]  leading-tight font-semibold">
             Swami Keshvanand Institute of Technology, M&G, Jaipur
           </p>
         </div>
         <div className="max-w-[200px]">
           <div className="flex w-full justify-center">
-            <div className="size-[50px] rounded-lg bg-gray-200" />
+            <div className="size-[40px] rounded-sm bg-gray-200" />
           </div>
-          <p className="mt-1 text-center text-xs font-semibold">
+          <p className="mt-1 text-center text-[10px]  leading-tight font-semibold">
             Indian Concrete Institute Rajasthan State Center
           </p>
         </div>

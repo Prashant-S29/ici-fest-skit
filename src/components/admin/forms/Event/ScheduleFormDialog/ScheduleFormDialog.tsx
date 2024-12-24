@@ -10,6 +10,7 @@ import { useMounted } from "@/hooks";
 // Schema
 import {
   CreateEventScheduleSchema,
+  PartialUpdateEventScheduleSchema,
   type CreateEventSchema,
 } from "@/schema/event.schema";
 
@@ -48,14 +49,22 @@ import {
   Input,
   DatePicker,
   TimePicker,
+  Textarea,
 } from "@/components/ui";
 
 // Constants
 import { SCHEDULE_FORM_DEFAULTS } from "@/global/formDefaults";
 
 // Utils
-import { convertDateStringToMin, convertMinToDate } from "@/utils/timeHandler";
+import {
+  convertDateStringToMin,
+  convertMinsToTimeString,
+  convertMinToDate,
+} from "@/utils/timeHandler";
 import { convertDateTimeToDate } from "@/utils/dateHandler";
+import { api } from "@/trpc/react";
+import { PageLoader } from "@/components/common/PageLoader";
+import { toast } from "sonner";
 
 interface Props {
   append?: UseFieldArrayAppend<z.infer<typeof CreateEventSchema>, "schedule">;
@@ -63,10 +72,18 @@ interface Props {
   remove?: UseFieldArrayRemove;
   updateIndex?: number;
   removeIndex?: number;
-  data?: z.infer<typeof CreateEventScheduleSchema>;
-  state: "CREATE" | "UPDATE" | "DELETE";
+  data?: z.infer<typeof PartialUpdateEventScheduleSchema>;
+  state: "CREATE" | "UPDATE" | "DELETE" | "UPDATE_BY_COORDINATOR";
   trigger?: React.ReactNode;
   isFormSubmitting: boolean;
+  setAllSchedulesInfo?: React.Dispatch<
+    React.SetStateAction<
+      | {
+          info: string | null | undefined;
+        }[]
+      | undefined
+    >
+  >;
 }
 
 export const ScheduleFormDialog: React.FC<Props> = ({
@@ -83,10 +100,10 @@ export const ScheduleFormDialog: React.FC<Props> = ({
   const [open, setOpen] = useState(false);
 
   const [startTime, setStartTime] = useState<Date>(
-    data ? new Date(convertMinToDate(data.startTime)) : new Date(),
+    data ? new Date(convertMinToDate(data.startTime || 0)) : new Date(),
   );
   const [endTime, setEndTime] = useState<Date>(
-    data ? new Date(convertMinToDate(data.endTime)) : new Date(),
+    data ? new Date(convertMinToDate(data.endTime || 0)) : new Date(),
   );
 
   const isMounted = useMounted();
@@ -101,18 +118,13 @@ export const ScheduleFormDialog: React.FC<Props> = ({
     setStartTime(new Date());
     setEndTime(new Date());
 
-    console.log("useEffect");
-
     if (!data) {
-      console.log("no data found");
       return;
     }
     form.reset(data);
 
-    console.log("data found");
-
-    setStartTime(new Date(convertMinToDate(data.startTime)));
-    setEndTime(new Date(convertMinToDate(data.endTime)));
+    setStartTime(new Date(convertMinToDate(data.startTime || 0)));
+    setEndTime(new Date(convertMinToDate(data.endTime || 0)));
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, open]);
@@ -121,6 +133,7 @@ export const ScheduleFormDialog: React.FC<Props> = ({
   const handleAddForm = (formData: CreateEventScheduleData) => {
     if (append) {
       const data = formatFormData(formData);
+
       append(data);
       // form.
       form.reset(SCHEDULE_FORM_DEFAULTS);
@@ -172,11 +185,7 @@ export const ScheduleFormDialog: React.FC<Props> = ({
   };
 
   if (!isMounted) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
@@ -190,19 +199,20 @@ export const ScheduleFormDialog: React.FC<Props> = ({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className={`max-w-[500px]`}>
+      <DialogContent
+        className={`${state === "UPDATE_BY_COORDINATOR" ? "max-w-[700px]" : "max-w-[500px]"}`}
+      >
         <DialogHeader>
           <DialogTitle>
             {state === "DELETE"
               ? "Delete Schedule Form"
               : state === "CREATE"
                 ? "New Schedule Form"
-                : "Edit Schedule Form"}
+                : state === "UPDATE_BY_COORDINATOR"
+                  ? "Add Schedule Info"
+                  : "Edit Schedule Form"}
           </DialogTitle>
           <DialogDescription className="leading-tight">
-            {/* Fill the below details for add a registration form */}
-            {/* This schedule will be displayed on the schedule page. */}
-            {/* <br /> */}
             {state === "DELETE" ? (
               <span>
                 <span className="font-semibold">
@@ -213,6 +223,12 @@ export const ScheduleFormDialog: React.FC<Props> = ({
               </span>
             ) : state === "CREATE" ? (
               "Fill the below details for add a schedule"
+            ) : state === "UPDATE_BY_COORDINATOR" ? (
+              <span>
+                {data?.title} &#x2022; {data?.date} &#x2022;{" "}
+                {convertMinsToTimeString(data?.startTime || 0)} -{" "}
+                {convertMinsToTimeString(data?.endTime || 0)}
+              </span>
             ) : (
               <span>
                 Fill the below details for update{" "}
@@ -225,20 +241,6 @@ export const ScheduleFormDialog: React.FC<Props> = ({
 
         {state === "DELETE" ? (
           <div className="-mt-2">
-            {/* <section className="rounded-lg border bg-[#f7f7f7] px-5 py-3">
-              <p className="text-sm font-semibold leading-tight">
-                Hide this form instead ?{" "}
-              </p>
-              <p className="mt-1 text-sm leading-tight">
-                When you hide a form, it will no longer appear in the list of
-                forms on the registration page. You can unhide it at any time.
-              </p>
-
-              <Button size="sm" variant="default" className="mt-3">
-                Hide this form
-              </Button>
-            </section> */}
-
             <section className="mt-3 flex justify-end gap-2">
               <DialogClose asChild>
                 <Button size="sm" variant="ghost">
@@ -257,142 +259,151 @@ export const ScheduleFormDialog: React.FC<Props> = ({
           </div>
         ) : (
           <Form {...form}>
-            <form className="space-y-3">
+            <form className="space-y-3 px-1">
               <div className="flex flex-col gap-4">
                 {/* Form Title */}
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem className="gap-[50px] space-y-0">
-                      <div className="leading-tight">
-                        <FormLabel className="leading-tight">Title</FormLabel>
-                        <FormDescription className="text-xs text-black/70">
-                          If your event have multiple schedules, you can add it
-                          as a <br />
-                          <span className="font-semibold">
-                            Your Event Name - Round 1
-                          </span>
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <div className="w-full">
-                          <Input
-                            placeholder="Schedule Title"
-                            className="mt-2 px-5 py-5 font-medium"
-                            {...field}
-                          />
-                          <FormMessage className="mt-1 px-1" />
-                        </div>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                {/* Event Date */}
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="gap-[50px] space-y-2">
-                      <div className="leading-tight">
-                        <FormLabel className="leading-tight">Date</FormLabel>
-                        <FormDescription className="text-xs text-black/70">
-                          Date of your event / round.
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <DatePicker
-                          value={
-                            field.value ? new Date(field.value) : undefined
-                          }
-                          onChange={(date) =>
-                            field.onChange(date?.toISOString())
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage className="px-1" />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Start Time */}
-                <section className="mt-2 grid grid-cols-2 gap-3">
+                {state !== "UPDATE_BY_COORDINATOR" && (
                   <FormField
                     control={form.control}
-                    name="startTime"
-                    render={() => (
-                      <FormItem className="gap-[50px] space-y-2">
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem className="gap-[50px] space-y-0">
                         <div className="leading-tight">
-                          <FormLabel className="leading-tight">
-                            Start Time
-                          </FormLabel>
+                          <FormLabel className="leading-tight">Title</FormLabel>
                           <FormDescription className="text-xs text-black/70">
-                            Start time of your event
+                            If your event have multiple schedules, you can add
+                            it as a{" "}
+                            <span className="font-semibold">
+                              Your Event Name - Round 1
+                            </span>
                           </FormDescription>
                         </div>
                         <FormControl>
-                          <TimePicker
-                            date={startTime}
-                            setDate={setStartTime}
-                            showSeconds={false}
-                          />
+                          <div className="w-full">
+                            <Input
+                              placeholder="Schedule Title"
+                              className="mt-2 px-5 py-5 font-medium"
+                              {...field}
+                            />
+                            <FormMessage className="mt-1 px-1" />
+                          </div>
                         </FormControl>
                       </FormItem>
                     )}
                   />
+                )}
 
-                  {/* Time */}
+                {/* Start Date | End Date */}
+                {state !== "UPDATE_BY_COORDINATOR" && (
                   <FormField
                     control={form.control}
-                    name="endTime"
-                    render={() => (
+                    name="date"
+                    render={({ field }) => (
                       <FormItem className="gap-[50px] space-y-2">
                         <div className="leading-tight">
-                          <FormLabel className="leading-tight">
-                            End Time
-                          </FormLabel>
+                          <FormLabel className="leading-tight">Date</FormLabel>
                           <FormDescription className="text-xs text-black/70">
-                            End time of your event
+                            Date of your event / round.
                           </FormDescription>
                         </div>
                         <FormControl>
-                          <TimePicker
-                            date={endTime}
-                            setDate={setEndTime}
-                            showSeconds={false}
+                          <DatePicker
+                            value={
+                              field.value ? new Date(field.value) : undefined
+                            }
+                            onChange={(date) =>
+                              field.onChange(date?.toISOString())
+                            }
                           />
                         </FormControl>
+                        <FormMessage className="px-1" />
                       </FormItem>
                     )}
                   />
-                </section>
+                )}
+
+                {/* Time */}
+                {state !== "UPDATE_BY_COORDINATOR" && (
+                  <section className="mt-2 grid grid-cols-2 place-items-center gap-3">
+                    {/* Start Time */}
+                    <FormField
+                      control={form.control}
+                      name="startTime"
+                      render={() => (
+                        <FormItem className="gap-[50px] space-y-2">
+                          <div className="leading-tight">
+                            <FormLabel className="leading-tight">
+                              Start Time
+                            </FormLabel>
+                            <FormDescription className="text-xs text-black/70">
+                              Start time of your event
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <TimePicker
+                              date={startTime}
+                              setDate={setStartTime}
+                              showSeconds={false}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* End Time */}
+                    <FormField
+                      control={form.control}
+                      name="endTime"
+                      render={() => (
+                        <FormItem className="gap-[50px] space-y-2">
+                          <div className="leading-tight">
+                            <FormLabel className="leading-tight">
+                              End Time
+                            </FormLabel>
+                            <FormDescription className="text-xs text-black/70">
+                              End time of your event
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <TimePicker
+                              date={endTime}
+                              setDate={setEndTime}
+                              showSeconds={false}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </section>
+                )}
 
                 {/* Venue */}
-                <FormField
-                  control={form.control}
-                  name="venue"
-                  render={({ field }) => (
-                    <FormItem className="gap-[50px] space-y-0">
-                      <div className="leading-tight">
-                        <FormLabel className="leading-tight">Venue</FormLabel>
-                        <FormDescription className="text-xs text-black/70">
-                          Venue where the event will be held
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <div className="w-full">
-                          <Input
-                            placeholder="Venue"
-                            className="mt-2 px-5 py-5 font-medium"
-                            {...field}
-                          />
-                          <FormMessage className="mt-1 px-1" />
+                {state !== "UPDATE_BY_COORDINATOR" && (
+                  <FormField
+                    control={form.control}
+                    name="venue"
+                    render={({ field }) => (
+                      <FormItem className="gap-[50px] space-y-0">
+                        <div className="leading-tight">
+                          <FormLabel className="leading-tight">Venue</FormLabel>
+                          <FormDescription className="text-xs text-black/70">
+                            Venue where the event will be held
+                          </FormDescription>
                         </div>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                        <FormControl>
+                          <div className="w-full">
+                            <Input
+                              placeholder="Venue"
+                              className="mt-2 px-5 py-5 font-medium"
+                              {...field}
+                            />
+                            <FormMessage className="mt-1 px-1" />
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
               <DialogFooter>
                 <div className="flex gap-2">
@@ -401,6 +412,7 @@ export const ScheduleFormDialog: React.FC<Props> = ({
                       Cancel
                     </Button>
                   </DialogClose>
+
                   <Button
                     variant="default"
                     size="sm"

@@ -13,7 +13,7 @@ const Events: React.FC = () => {
   const { data, isLoading, refetch, isFetching } =
     api.event.getAllEvents.useQuery();
   return (
-    <div className="px-[150px] py-[50px]">
+    <div className="px-[150px] py-[100px]">
       <section className="flex w-full items-center justify-between">
         <p className="text-xl font-semibold">
           All Events{" "}

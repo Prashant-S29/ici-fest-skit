@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 
 // Zod, RDZ and RHF
@@ -26,9 +26,14 @@ import { X } from "lucide-react";
 // import { Button, ToastProps } from "@/components/ui";
 
 // Schema
-import type { CreateEventSchema } from "@/schema/event.schema";
+import type { CreateCoordinatorManagedData } from "@/schema/event.schema";
 import { useToast } from "@/hooks";
-import { useCoverImageUploader, useImageUploader } from "@/global/hooks";
+import {
+  useCoverImageUploader,
+  useImageUploader,
+  useUploadedCoverImage,
+} from "@/global/hooks";
+import { ImagePreview } from "@/components/common";
 
 interface FileWithPreview extends File {
   preview: string;
@@ -38,7 +43,7 @@ interface ImageUploadFieldProps {
   maxFiles?: number;
   minFiles?: number;
   maxSizePerFileInMB?: number;
-  form: UseFormReturn<z.infer<typeof CreateEventSchema>, any, undefined>;
+  form: UseFormReturn<z.infer<typeof CreateCoordinatorManagedData>, any, undefined>;
   isFormSubmitting: boolean;
 }
 
@@ -47,7 +52,7 @@ interface ImageUploadFieldProps {
 interface UseImageUploadFieldProps {
   maxFiles: number;
   maxSizePerFileInMB: number;
-  setValue: UseFormSetValue<z.infer<typeof CreateEventSchema>>;
+  setValue: UseFormSetValue<z.infer<typeof CreateCoordinatorManagedData>>;
   setStagedFiles: (files: FileWithPreview[]) => void;
   stagedFiles: FileWithPreview[];
   images: FileWithPreview[];
@@ -150,8 +155,11 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
   form,
   isFormSubmitting,
 }) => {
+  const { images: uploadedCoverImage, setImages: setUploadedCoverImage } =
+    useUploadedCoverImage();
+
   const { control, setValue } = useFormContext<
-    z.infer<typeof CreateEventSchema>,
+    z.infer<typeof CreateCoordinatorManagedData>,
     any,
     undefined
   >();
@@ -182,6 +190,8 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
     maxFiles,
     disabled: isFormSubmitting,
   });
+
+
 
   return (
     <Controller
@@ -229,38 +239,51 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
 
             {/* Preview Grid */}
             {stagedFiles.length > 0 && (
-              <div>
-                <div className="mt-4 grid grid-cols-5 gap-4">
-                  {stagedFiles.map((file) => (
-                    <div key={file.preview} className="group relative">
+              <div className="mt-4 grid grid-cols-5 gap-4">
+                {stagedFiles.map((file) => (
+                  <div key={file.preview} className="group relative">
+                    <ImagePreview src={file.preview} key={file.preview}>
                       <Image
                         src={file.preview}
                         alt={file.name || "helloWorld"}
                         width={200}
                         height={200}
                         className="h-24 w-full rounded-lg border object-cover"
-                        onLoad={() => URL.revokeObjectURL(file.preview)}
+                        // onLoad={() => URL.revokeObjectURL(file.preview)}
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeFile(file)}
-                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    </ImagePreview>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(file)}
+                      className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-                {/* <div className="mt-2">
-                  <Button
-                    size="sm"
-                    disabled={isUploading}
-                    onClick={() => handleFileUpload()}
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                </div> */}
+            {/* Uploaded Cover Image*/}
+            {uploadedCoverImage !== "" && (
+              <div className="mt-4 grid grid-cols-5 gap-4">
+                <ImagePreview src={uploadedCoverImage}>
+                  <Image
+                    src={uploadedCoverImage}
+                    alt="helloWorld"
+                    width={200}
+                    height={200}
+                    className="h-24 w-full rounded-lg border object-cover"
+                    // onLoad={() => URL.revokeObjectURL(file.preview)}
+                  />
+                </ImagePreview>
+                <button
+                  type="button"
+                  // onClick={() => removeFile(file)}
+                  className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             )}
           </div>

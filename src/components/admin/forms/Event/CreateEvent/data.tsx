@@ -1,6 +1,6 @@
-import type { FormConfigProps } from "@/types";
+import type { CreateEventFormConfig } from "@/types";
 
-export const CreateEventFormData: FormConfigProps[] = [
+export const CreateEventFormData: CreateEventFormConfig[] = [
   {
     category: "Event Dashboard Configurations",
     categoryId: "eventDashboard",
@@ -93,6 +93,36 @@ export const CreateEventFormData: FormConfigProps[] = [
   //     },
   //   ],
   // },
+
+  {
+    category: "Registration",
+    categoryId: "eventInfo",
+    fields: [
+      {
+        fieldTitle: "Event Type",
+        fieldDescription: "Type of your event",
+        fieldName: "category",
+        fieldType: {
+          type: "select",
+          options: [
+            {
+              label: "Event",
+              value: "EVENT",
+            },
+            {
+              label: "Workshop",
+              value: "WORKSHOP",
+            },
+            {
+              label: "Exhibition",
+              value: "EXHIBITION",
+            },
+          ],
+        },
+        fieldDataType: "text",
+      },
+    ],
+  },
   {
     category: "Registration",
     categoryId: "registration",

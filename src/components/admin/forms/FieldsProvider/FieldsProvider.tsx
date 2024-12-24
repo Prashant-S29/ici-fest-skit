@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { CopyIcon, EveHidden, EyeVisible } from "@/icons";
 
 // Types
-import type { FormFieldConfigProps } from "@/types";
+import type { CreateEventFormFieldConfigProps } from "@/types";
 
 // Zod and RHF
 import { type z } from "zod";
@@ -42,7 +42,7 @@ import type { CreateEventSchema } from "@/schema/event.schema";
 import { CoverImageUploadField } from "../../common/CoverImageUploader";
 
 interface Props {
-  field: FormFieldConfigProps;
+  field: CreateEventFormFieldConfigProps;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<z.infer<typeof CreateEventSchema>, any, undefined>;
   isFormSubmitting: boolean;
@@ -264,31 +264,12 @@ export const FormFieldProvider: React.FC<Props> = ({
                     ))}
                   </SelectContent>
                 </Select>
-              ) : field.fieldType.type === "toggle" ? (
+              ) : field.fieldType.type === "toggle" && (
                 <div className="flex justify-end">
                   <Switch
                     disabled={isFormSubmitting || isEventDeleting}
                     checked={fieldProps.value as boolean}
                     onCheckedChange={fieldProps.onChange}
-                  />
-                </div>
-              ) : field.fieldType.type === "upload" &&
-                field.fieldName === "images" ? (
-                <div>
-                  <ImageUploadField
-                    maxFiles={5}
-                    maxSizePerFileInMB={4}
-                    form={form}
-                    isFormSubmitting={isFormSubmitting || isEventDeleting}
-                  />
-                </div>
-              ) : (
-                <div>
-                  <CoverImageUploadField
-                    maxFiles={1}
-                    maxSizePerFileInMB={4}
-                    form={form}
-                    isFormSubmitting={isFormSubmitting || isEventDeleting}
                   />
                 </div>
               )}
