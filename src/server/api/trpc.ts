@@ -123,7 +123,12 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
-    if (!ctx.session || !ctx.session.user) {
+    if (
+      !ctx.session ||
+      !ctx.session.user ||
+      (ctx.session.user.role !== "COORDINATOR" &&
+        ctx.session.user.role !== "ADMIN")
+    ) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
     return next({
@@ -153,5 +158,22 @@ export const superAdminProcedureMiddleware = t.middleware(
   },
 );
 
+// Admin Procedure Middleware
+export const adminProcedureMiddleware = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.session || !ctx.session.user || ctx.session.user.role !== "ADMIN") {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid or missing SUPER_ADMIN_PASS header",
+    });
+  }
+
+  return next();
+});
+
 // Super Admin Procedure
-export const superAdminProcedure = t.procedure.use(superAdminProcedureMiddleware);
+export const superAdminProcedure = t.procedure.use(
+  superAdminProcedureMiddleware,
+);
+
+// Admin Procedure
+export const adminProcedure = t.procedure.use(adminProcedureMiddleware);

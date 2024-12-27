@@ -1,9 +1,28 @@
+// import { getSession } from "next-auth/react";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 
 const f = createUploadthing();
 
-const auth = (req: Request) => ({ id: "fakeId" }); // Fake auth function
+
+// TODO: add middleware to check if user is authorized
+// const isAuthorizedUser = async () => {
+//   const session = await getSession();
+//   if (
+//     session &&
+//     session.user &&
+//     (session.user.role === "ADMIN" || session.user.role === "COORDINATOR")
+//   ) {
+//     return {
+//       authorized: true,
+//       user: session.user,
+//     };
+//   }
+//   return {
+//     authorized: false,
+//     user: null,
+//   };
+// };
 
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
@@ -19,16 +38,17 @@ export const ourFileRouter = {
     },
   })
     // Set permissions and file types for this FileRoute
-    .middleware(async ({ req }) => {
+    .middleware(async () => {
       // This code runs on your server before upload
-      const user = auth(req);
+      // const user = await isAuthorizedUser();
+      const user = { authorized: true, user: { id: "fakeId" } };
 
       // If you throw, the user will not be able to upload
       // eslint-disable-next-line @typescript-eslint/only-throw-error
-      if (!user) throw new UploadThingError("Unauthorized");
+      if (!user.authorized) throw new UploadThingError("Unauthorized");
 
       // Whatever is returned here is accessible in onUploadComplete as `metadata`
-      return { userId: user.id };
+      return { userId: user.user?.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
       // This code RUNS ON YOUR SERVER after upload

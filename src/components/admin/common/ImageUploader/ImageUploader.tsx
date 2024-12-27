@@ -25,10 +25,15 @@ import { X } from "lucide-react";
 // import { Button, ToastProps } from "@/components/ui";
 
 // Schema
-import type { CreateEventInfoSchema } from "@/schema/event.schema";
+import type { CreateCoordinatorManagedData } from "@/schema/event.schema";
 import { useToast } from "@/hooks";
 import { useImageUploader } from "@/global/hooks";
 import { ImagePreview } from "@/components/common";
+// import { handleFileDelete, utapi } from "@/utils/uploadthing";
+import { toast } from "sonner";
+import { Button } from "@/components/ui";
+import { api } from "@/trpc/react";
+import { useRouter } from "next/navigation";
 
 interface FileWithPreview extends File {
   preview: string;
@@ -38,8 +43,14 @@ interface ImageUploadFieldProps {
   maxFiles?: number;
   minFiles?: number;
   maxSizePerFileInMB?: number;
-  form: UseFormReturn<z.infer<typeof CreateEventInfoSchema>, any, undefined>;
+  form: UseFormReturn<
+    z.infer<typeof CreateCoordinatorManagedData>,
+    any,
+    undefined
+  >;
   isFormSubmitting: boolean;
+  uploadedImages?: string[];
+  slug: string;
 }
 
 // Custom hook to manage file upload logic
@@ -47,11 +58,12 @@ interface ImageUploadFieldProps {
 interface UseImageUploadFieldProps {
   maxFiles: number;
   maxSizePerFileInMB: number;
-  setValue: UseFormSetValue<z.infer<typeof CreateEventInfoSchema>>;
+  setValue: UseFormSetValue<z.infer<typeof CreateCoordinatorManagedData>>;
   setStagedFiles: (files: FileWithPreview[]) => void;
   stagedFiles: FileWithPreview[];
   images: FileWithPreview[];
   setImages: (images: FileWithPreview[]) => void;
+  slug: string;
 }
 
 const useImageUpload = ({
@@ -62,6 +74,7 @@ const useImageUpload = ({
   stagedFiles,
   images,
   setImages,
+  slug
 }: UseImageUploadFieldProps) => {
   const { toast } = useToast();
 
@@ -97,11 +110,23 @@ const useImageUpload = ({
         }
         return true;
       })
-      .map((file) =>
-        Object.assign(file, {
-          preview: URL.createObjectURL(file),
-        }),
-      );
+      // .map((file) =>
+      //   Object.assign(file, {
+      //     preview: URL.createObjectURL(file),
+      //   }),
+      // );
+
+      .map((file, index) => {
+        const renamedFile = new File(
+          [file],
+          `${slug}_image_${index + 1}${file.name.substring(file.name.lastIndexOf("."))}`, // Add index and preserve file extension
+          { type: file.type },
+        );
+
+        return Object.assign(renamedFile, {
+          preview: URL.createObjectURL(renamedFile),
+        });
+      });
 
     // Combine existing and new files
     const updatedFiles = [...currentFiles, ...validFiles].slice(0, maxFiles);
@@ -146,12 +171,16 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   maxSizePerFileInMB = 4,
   form,
   isFormSubmitting,
+  uploadedImages,
+  slug,
 }) => {
   const { control, setValue } = useFormContext<
-    z.infer<typeof CreateEventInfoSchema>,
+    z.infer<typeof CreateCoordinatorManagedData>,
     any,
     undefined
   >();
+
+  const router = useRouter();
 
   const [stagedFiles, setStagedFiles] = useState<FileWithPreview[]>([]);
 
@@ -167,6 +196,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     stagedFiles,
     images,
     setImages,
+    slug
   });
 
   // Use dropzone hook
@@ -180,6 +210,74 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     disabled: isFormSubmitting,
   });
 
+  const deleteFilesMutation = api.file.deleteFiles.useMutation();
+  const [isImageDeleting, setIsImageDeleting] = useState(false);
+
+  const updateImageMutation = api.event.updateImages.useMutation();
+
+  const [isAllImagesDeleted, setIsAllImagesDeleted] = useState(false);
+  const [uploadedImagesLength, setUploadedImagesLength] = useState(
+    uploadedImages ? uploadedImages.length : 0,
+  );
+
+  const updateReviewRequestStatusMutation =
+    api.event.updateReviewRequestStatus.useMutation();
+
+  const deleteUploadedImage = async ({
+    url,
+    setIsDeleting,
+    setIsDeleted,
+  }: {
+    url: string;
+    setIsDeleting: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsDeleted: React.Dispatch<React.SetStateAction<boolean>>;
+  }) => {
+    console.log(uploadedImages);
+    setIsDeleting(true);
+    setIsImageDeleting(true);
+
+    const res = await deleteFilesMutation.mutateAsync({
+      fileUrls: [url],
+    });
+
+    console.log("response from uploadthing", res);
+
+    if (res.success) {
+      if (!uploadedImages) return;
+
+      const imageUpdateRes = await updateImageMutation.mutateAsync({
+        slug,
+        images: uploadedImages.filter((file) => file !== url),
+      });
+
+      if (imageUpdateRes.id) {
+        uploadedImages = uploadedImages.filter((file) => file !== url);
+        setUploadedImagesLength((preVal) => preVal - 1);
+
+        await updateReviewRequestStatusMutation.mutateAsync({
+          slug,
+          status: "PENDING",
+        });
+
+        if (uploadedImages.length === 0) setIsAllImagesDeleted(true);
+        setIsDeleted(true);
+        toast.success("Image deleted successfully");
+        // router.
+        location.reload();
+        return;
+      }
+
+      // setValue("images", uploadedImages.filter((file) => file !== url));
+
+      setIsDeleting(false);
+      setIsImageDeleting(false);
+      return;
+    }
+
+    setIsDeleting(false);
+    setIsImageDeleting(false);
+    toast.error("Error deleting image");
+  };
   return (
     <Controller
       name="images"
@@ -217,7 +315,11 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                       Drag n drop some files here
                     </p>
                     <p className="text-xs leading-none text-gray-500">
-                      or click to select files
+                      or click to select files (
+                      {uploadedImages
+                        ? uploadedImagesLength + stagedFiles.length
+                        : stagedFiles.length}
+                      /5)
                     </p>
                   </>
                 )}
@@ -226,8 +328,9 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
 
             {/* Preview Grid */}
             {stagedFiles.length > 0 && (
-              <div>
-                <div className="mt-4 grid grid-cols-5 gap-4">
+              <div className="mt-4">
+                <p className="text-xs text-black/70">New Upload(s)</p>
+                <div className="mt-1 grid grid-cols-5 gap-4">
                   {stagedFiles.map((file) => (
                     <div key={file.preview} className="group relative">
                       <ImagePreview src={file.preview} key={file.preview}>
@@ -240,31 +343,102 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                           // onLoad={() => URL.revokeObjectURL(file.preview)}
                         />
                       </ImagePreview>
-                      <button
+                      <Button
+                        size="icon"
                         type="button"
+                        disabled={isImageDeleting}
                         onClick={() => removeFile(file)}
-                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        className="absolute right-1 top-1 h-auto w-fit rounded-full bg-red-500 p-1 text-white opacity-0 shadow-none transition-opacity hover:bg-red-500 group-hover:opacity-100"
                       >
                         <X className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
-
-                {/* <div className="mt-2">
-                  <Button
-                    size="sm"
-                    disabled={isUploading}
-                    onClick={() => handleFileUpload()}
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                </div> */}
               </div>
             )}
+
+            {/* {JSON.stringify(uploadedImages)} */}
+
+            {/* {uploadedImages && uploadedImages.length > 0 && (
+              <div>
+                {uploadedImages.map((file, index) => (
+                  <p key={index}>{file}</p>
+                ))}
+              </div>
+            )} */}
+
+            {/* Uploaded Image Grid*/}
+            {!isAllImagesDeleted &&
+              uploadedImages &&
+              uploadedImages.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs text-black/70">Uploaded Image(s)</p>
+                  <div className="mt-1 grid grid-cols-5 gap-4">
+                    {uploadedImages.map((file, index) => (
+                      <div key={index} className="group relative">
+                        <ImageContainer
+                          uploadedImage={file}
+                          deleteUploadedImage={deleteUploadedImage}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
           </div>
         );
       }}
     />
+  );
+};
+
+const ImageContainer = ({
+  uploadedImage,
+  deleteUploadedImage,
+}: {
+  uploadedImage: string;
+  deleteUploadedImage: ({
+    url,
+    setIsDeleted,
+  }: {
+    url: string;
+    setIsDeleted: React.Dispatch<React.SetStateAction<boolean>>;
+    setIsDeleting: React.Dispatch<React.SetStateAction<boolean>>;
+  }) => Promise<void>;
+}) => {
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  return (
+    <div className={`group relative ${isDeleted && "hidden"}`}>
+      <ImagePreview src={uploadedImage} loading={isDeleting}>
+        <Image
+          src={uploadedImage}
+          alt="hello"
+          width={200}
+          height={200}
+          className="h-24 w-full rounded-lg border object-cover"
+          unoptimized
+        />
+      </ImagePreview>
+      <Button
+        size="icon"
+        type="button"
+        loading={isDeleting}
+        disabled={isDeleting}
+        // onClick={() => removeFile(file)}
+        onClick={async () =>
+          await deleteUploadedImage({
+            url: uploadedImage,
+            setIsDeleted: setIsDeleted,
+            setIsDeleting: setIsDeleting,
+          })
+        }
+        className="absolute right-1 top-1 h-auto w-fit rounded-full bg-red-500 p-1 text-white opacity-0 shadow-none transition-opacity hover:bg-red-500 group-hover:opacity-100"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
   );
 };

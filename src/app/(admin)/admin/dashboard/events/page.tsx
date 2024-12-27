@@ -8,6 +8,7 @@ import { EventTable } from "@/components/admin/common/EventTable";
 import { Button } from "@/components/ui";
 import Link from "next/link";
 import { RefreshIcon } from "@/icons";
+import { NoEventsFound } from "@/components/admin/common";
 
 const Events: React.FC = () => {
   const { data, isLoading, refetch, isFetching } =
@@ -45,9 +46,7 @@ const Events: React.FC = () => {
       ) : data?.formattedData && data.formattedData.length > 0 ? (
         <EventTable data={data.formattedData} />
       ) : (
-        <div className="flex items-center justify-center">
-          <p>No Events Found</p>
-        </div>
+        <NoEventsFound />
       )}
     </div>
   );

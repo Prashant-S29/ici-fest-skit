@@ -41,6 +41,7 @@ export const COORDINATOR_MANAGED_FORM_DEFAULTS: z.infer<
   brochure: "",
   judgementCriteria: "",
   disqualificationCriteria: "",
+  materialsProvided: "",
 };
 
 export const REGISTRATION_FORM_DEFAULTS: z.infer<

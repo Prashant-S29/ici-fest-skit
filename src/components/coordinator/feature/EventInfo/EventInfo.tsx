@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 // api handler
 import { api } from "@/trpc/react";
@@ -14,6 +15,8 @@ import { Button } from "@/components/ui";
 import Link from "next/link";
 import { getEndpoint } from "@/utils/getEndpoint";
 import { EventInfoForm } from "../../form";
+import { ReviewUpdateStatusPill } from "@/app/(admin)/admin/dashboard/events/eventTableConfig";
+import { toast } from "sonner";
 
 interface Props {
   eventId: string;
@@ -26,7 +29,17 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
       slug: eventId,
     });
 
-  if (isLoading) {
+  const [isRequestApproving, setIsRequestApproving] = useState(false);
+  const [isRequestRejecting, setIsRequestRejecting] = useState(false);
+
+  const { data: coordinatorManagedData, isLoading: isCoordinatorLoading } =
+    api.event.getCoordinatorManagedDataById.useQuery({
+      slug: eventId,
+    });
+
+  const updateEventMutation = api.event.updateEventInfoBySlug.useMutation();
+
+  if (isLoading || isCoordinatorLoading) {
     return (
       <div className="min-h-screen w-full bg-[#f7f7f7] px-[150px] py-[100px]">
         <div className="loader h-6 w-[150px] rounded-sm" />
@@ -39,6 +52,40 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
     return <ResourceHandler status="notFound" />;
   }
 
+  const handleApproveReviewRequest = async () => {
+    setIsRequestApproving(true);
+
+    await updateEventMutation.mutateAsync({
+      slug: eventId,
+      reviewRequestStatus: "APPROVED",
+      brochure: coordinatorManagedData?.brochure || "",
+      coverImage: coordinatorManagedData?.coverImage || "",
+      images: coordinatorManagedData?.images,
+      judgementCriteria: coordinatorManagedData?.judgementCriteria || "",
+      disqualificationCriteria:
+        coordinatorManagedData?.disqualificationCriteria || "",
+      whatsappGroupURL: coordinatorManagedData?.whatsappGroupURL || "",
+      shortDescription: coordinatorManagedData?.shortDescription || "",
+      description: coordinatorManagedData?.description || "",
+      materialsProvided: coordinatorManagedData?.materialsProvided || "",
+    });
+    setIsRequestApproving(false);
+
+    toast.success("Review Request Updated Successfully");
+  };
+
+  const handleRejectReviewRequest = async () => {
+    setIsRequestRejecting(true);
+
+    await updateEventMutation.mutateAsync({
+      slug: eventId,
+      reviewRequestStatus: "REJECTED",
+    });
+
+    setIsRequestRejecting(false);
+    toast.success("Review Request Rejected Successfully");
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#f7f7f7] px-[150px] py-[100px]">
       {isLoading ? (
@@ -46,7 +93,12 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
       ) : (
         <div>
           <section className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">{data.title}</h1>
+            <section className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold">{data.title}</h1>
+              {data.reviewRequestStatus && (
+                <ReviewUpdateStatusPill status={data.reviewRequestStatus} />
+              )}
+            </section>
 
             {isAdmin && (
               <Button size="sm" variant="default" asChild>
@@ -56,6 +108,44 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
               </Button>
             )}
           </section>
+
+          {isAdmin && data.reviewRequestStatus === "PENDING" && (
+            <div className="mt-5 overflow-hidden rounded-lg border bg-white">
+              <div className="flex w-full justify-between gap-[100px] px-5 py-4">
+                <section>
+                  <h3 className="text-sm font-semibold">
+                    Review Update Request
+                  </h3>
+                  <p className="text-xs text-black/70">
+                    The coordinator has requested an update to the event
+                    details. Please review the details and update the status
+                  </p>
+                </section>
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    loading={isRequestRejecting}
+                    disabled={isRequestRejecting}
+                    onClick={handleRejectReviewRequest}
+                  >
+                    Reject Request
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="success"
+                    loading={isRequestApproving}
+                    disabled={isRequestApproving}
+                    onClick={handleApproveReviewRequest}
+                  >
+                    Approve Request
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-5 overflow-hidden rounded-lg border bg-white">
             <div className="w-full border-b px-5 py-4">
               <h3 className="text-sm font-semibold">Event Details</h3>
@@ -97,21 +187,29 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
                     </p>
 
                     <div className="gap-5">
-                      {data.coordinators.map((coordinator, index) => (
-                        <div key={index}>
-                          <h2 className="text-sm font-medium">
-                            {coordinator.name}{" "}
-                            <span className="text-xs text-black/70">
-                              (
-                              {branchYearHandler({
-                                branch: coordinator.branch,
-                                year: coordinator.year,
-                              })}{" "}
-                              &#x2022; {coordinator.mobile})
-                            </span>
-                          </h2>
-                        </div>
-                      ))}
+                      {data.coordinators.length === 0 ? (
+                        <p className="mt-1 text-xs font-medium leading-tight text-destructive">
+                          No Coordinators have been added yet.
+                        </p>
+                      ) : (
+                        <>
+                          {data.coordinators.map((coordinator, index) => (
+                            <div key={index}>
+                              <h2 className="text-sm font-medium">
+                                {coordinator.name}{" "}
+                                <span className="text-xs text-black/70">
+                                  (
+                                  {branchYearHandler({
+                                    branch: coordinator.branch,
+                                    year: coordinator.year,
+                                  })}{" "}
+                                  &#x2022; {coordinator.mobile})
+                                </span>
+                              </h2>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -124,30 +222,40 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
                     </p>
 
                     <div className="gap-5">
-                      {data.registrationForm.map((registrationForm, index) => (
-                        <div key={index}>
-                          <h2 className="text-sm font-medium">
-                            <Link
-                              href={registrationForm.formURL}
-                              className="text-blue-600 underline"
-                              target="_blank"
-                            >
-                              {registrationForm.title}
-                            </Link>{" "}
-                            <span className="text-xs text-black/70">
-                              (
-                              {registrationForm.isActive
-                                ? "Active"
-                                : "Not Active"}{" "}
-                              &#x2022;{" "}
-                              {registrationForm.formAmount === 0
-                                ? "Free of Cost"
-                                : `₹${registrationForm.formAmount}`}
-                              )
-                            </span>
-                          </h2>
-                        </div>
-                      ))}
+                      {data.registrationForm.length === 0 ? (
+                        <p className="mt-1 text-xs font-medium leading-tight text-destructive">
+                          No Registration Forms have been added yet.
+                        </p>
+                      ) : (
+                        <>
+                          {data.registrationForm.map(
+                            (registrationForm, index) => (
+                              <div key={index}>
+                                <h2 className="text-sm font-medium">
+                                  <Link
+                                    href={registrationForm.formURL}
+                                    className="text-blue-600 underline"
+                                    target="_blank"
+                                  >
+                                    {registrationForm.title}
+                                  </Link>{" "}
+                                  <span className="text-xs text-black/70">
+                                    (
+                                    {registrationForm.isActive
+                                      ? "Active"
+                                      : "Not Active"}{" "}
+                                    &#x2022;{" "}
+                                    {registrationForm.formAmount === 0
+                                      ? "Free of Cost"
+                                      : `₹${registrationForm.formAmount}`}
+                                    )
+                                  </span>
+                                </h2>
+                              </div>
+                            ),
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
@@ -159,37 +267,51 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
                     </p>
 
                     <div className="gap-5">
-                      {data.schedule.map((schedule, index) => (
-                        <div key={index}>
-                          <h2 className="text-sm font-medium">
-                            {schedule.title}{" "}
-                            <span className="text-xs text-black/70">
-                              ({convertMinsToTimeString(schedule.startTime)} -{" "}
-                              {convertMinsToTimeString(schedule.endTime)}{" "}
-                              &#x2022; {schedule.venue})
-                            </span>
-                          </h2>
-                        </div>
-                      ))}
+                      {data.schedule.length === 0 ? (
+                        <p className="mt-1 text-xs font-medium leading-tight text-destructive">
+                          No Schedules have been added yet.
+                        </p>
+                      ) : (
+                        <>
+                          {data.schedule.map((schedule, index) => (
+                            <div key={index}>
+                              <h2 className="text-sm font-medium">
+                                {schedule.title}{" "}
+                                <span className="text-xs text-black/70">
+                                  ({convertMinsToTimeString(schedule.startTime)}{" "}
+                                  - {convertMinsToTimeString(schedule.endTime)}{" "}
+                                  &#x2022; {schedule.venue})
+                                </span>
+                              </h2>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
+          {/* {data} */}
+          {/* {JSON.stringify(coordinatorManagedData)} */}
           <EventInfoForm
-            state="UPDATE"
+            state="CREATE"
             slug={eventId}
             data={{
               id: data.id,
-              brochure: data.brochure ?? "",
-              coverImage: data.coverImage ?? "",
-              images: data.images,
-              judgementCriteria: data.judgementCriteria ?? "",
-              disqualificationCriteria: data.disqualificationCriteria ?? "",
-              whatsappGroupURL: data.whatsappGroupURL ?? "",
-              shortDescription: data.shortDescription ?? "",
-              description: data.description ?? "",
+              brochure: coordinatorManagedData?.brochure || "",
+              coverImage: coordinatorManagedData?.coverImage || "",
+              images: coordinatorManagedData?.images,
+              judgementCriteria:
+                coordinatorManagedData?.judgementCriteria || "",
+              disqualificationCriteria:
+                coordinatorManagedData?.disqualificationCriteria || "",
+              whatsappGroupURL: coordinatorManagedData?.whatsappGroupURL || "",
+              shortDescription: coordinatorManagedData?.shortDescription || "",
+              description: coordinatorManagedData?.description || "",
+              materialsProvided:
+                coordinatorManagedData?.materialsProvided || "",
             }}
           />
         </div>

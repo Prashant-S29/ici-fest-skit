@@ -97,7 +97,7 @@ export type CreateEventFormConfig = {
 
 export type CreateEventInfoFormConfig = {
   category: string;
-  categoryId: "about" | "assets" | "structure" | "rules";
+  categoryId: "about" | "assets" | "rules" | "materials";
   isOptional?: boolean;
   fields: CreateCoordinatorManageFormFieldConfigProps[];
 };

@@ -2,6 +2,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 import { eventRouter } from "./routers/event";
 import { adminRouter } from "./routers/admin";
 import { scheduleRouter } from "./routers/schedule";
+import { fileRouter } from "./routers/files";
 
 /**
  * This is the primary router for your server.
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   admin: adminRouter,
   event: eventRouter,
   schedule: scheduleRouter,
+  file: fileRouter,
 });
 
 // export type definition of API

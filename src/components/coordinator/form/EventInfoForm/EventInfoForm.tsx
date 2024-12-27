@@ -59,12 +59,12 @@ interface Props {
   state: "CREATE" | "UPDATE";
 }
 
-export const EventInfoForm: React.FC<Props> = ({
-  data,
-  state,
-  slug,
-}) => {
-  //   const updateEventMutation = api.event.updateEventInfoBySlug.useMutation();
+export const EventInfoForm: React.FC<Props> = ({ data, state, slug }) => {
+  const updateCoordinatorManagedDataMutation =
+    api.event.updateCoordinatorManagedDataById.useMutation();
+
+  const updateReviewRequestStatusMutation =
+    api.event.updateReviewRequestStatus.useMutation();
 
   const { images: coverImage, setImages: setCoverImage } =
     useCoverImageUploader();
@@ -72,12 +72,14 @@ export const EventInfoForm: React.FC<Props> = ({
 
   const form = useForm<CreateCoordinatorManagedDataType>({
     resolver: zodResolver(CreateCoordinatorManagedData),
-    defaultValues: COORDINATOR_MANAGED_FORM_DEFAULTS,
+    defaultValues: data ?? COORDINATOR_MANAGED_FORM_DEFAULTS,
   });
 
   // handle file upload
   const handleImagesUpload = async () => {
-    if (images.length === 0) return;
+    if (images.length === 0) {
+      return [];
+    }
 
     const { done } = await createUpload("imageUploader", {
       files: images,
@@ -88,10 +90,16 @@ export const EventInfoForm: React.FC<Props> = ({
       "images",
       data.map((file) => file.url),
     );
+
+    const uploadedImages = data.map((file) => file.url);
+
+    return uploadedImages;
   };
 
   const handleCoverImagesUpload = async () => {
-    if (coverImage.length === 0) return;
+    if (coverImage.length === 0) {
+      return "";
+    }
 
     const { done } = await createUpload("imageUploader", {
       files: coverImage,
@@ -99,37 +107,50 @@ export const EventInfoForm: React.FC<Props> = ({
 
     const data = await done();
     form.setValue("coverImage", data[0]?.url || "");
+
+    const uploadedCoverImage = data[0]?.url || "";
+    return uploadedCoverImage;
   };
 
-//   const onSubmit = async () => {
-//     // console.log(data);
+  const onSubmit = async () => {
+    const updatedData = form.getValues();
+    console.log(updatedData);
 
-//     try {
-//       await handleImagesUpload();
-//       await handleCoverImagesUpload();
+    try {
+      const images = await handleImagesUpload();
+      const coverImage = await handleCoverImagesUpload();
 
-//       const updatedData = form.getValues();
+      const res = await updateCoordinatorManagedDataMutation.mutateAsync({
+        slug,
+        ...updatedData,
+        images: data?.images ? [...data.images, ...images] : images,
+        coverImage: data?.coverImage ? data.coverImage : coverImage,
+      });
 
-//       const res = await updateEventMutation.mutateAsync({
-//         ...updatedData,
-//         slug,
-//       });
-//       toast.success("Event info updated successfully");
-//       form.reset(EVENT_INFO_FORM_DEFAULTS);
-//       console.log(res);
-//     } catch (error) {
-//       console.log(error);
-//       toast.error("Error updating event info");
-//       form.reset(EVENT_INFO_FORM_DEFAULTS);
-//     }
-//   };
+      await updateReviewRequestStatusMutation.mutateAsync({
+        slug,
+        status: "PENDING",
+      });
+
+      console.log(res);
+      toast.success("Event info updated successfully");
+      // form.reset(COORDINATOR_MANAGED_FORM_DEFAULTS);
+      // console.log(res);
+    } catch (error) {
+      console.log(error);
+      toast.error("Error updating event info");
+
+      // form.reset(COORDINATOR_MANAGED_FORM_DEFAULTS);
+    }
+    location.reload();
+  };
 
   return (
     <div>
       <div className="w-full">
         <Form {...form}>
           <form
-            // onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit(onSubmit)}
             className="mt-5 space-y-3"
           >
             <div className="mt-5 flex w-full items-center justify-between rounded-lg border bg-white px-5 py-4">
@@ -169,72 +190,11 @@ export const EventInfoForm: React.FC<Props> = ({
                       field={field}
                       form={form}
                       isFormSubmitting={form.formState.isSubmitting}
+                      uploadedImages={data?.images}
+                      slug={slug}
+                      uploadedCoverImage={data?.coverImage}
                     />
                   ))}
-
-                  {/* Structure */}
-                  {/* {category.categoryId === "structure" && (
-                    <div>
-                      <div className="gap-[50px]">
-                        <section className="flex justify-between gap-[50px]">
-                          <section className="min-w-[400px] max-w-[400px]">
-                            <p className="text-sm font-medium">Schedule Info</p>
-                            <p className="text-xs text-black/70">
-                              Explain what will be happening on these schedules.
-                            </p>
-                          </section>
-                          <div className="grid w-full grid-cols-2 gap-3">
-                            {schedule && schedule.length > 0 ? (
-                              schedule.map((scheduleData, index) => (
-                                <ScheduleFormDialog
-                                  key={index}
-                                  data={{
-                                    date: scheduleData.date,
-                                    startTime: scheduleData.startTime,
-                                    endTime: scheduleData.endTime,
-                                    venue: scheduleData.venue,
-                                    title: scheduleData.title,
-                                    info: scheduleData.info
-                                      ? scheduleData.info
-                                      : "",
-                                    id: scheduleData.id || "",
-                                  }}
-                                  updateIndex={index}
-                                  setAllSchedulesInfo={setAllSchedulesInfo}
-                                  state="UPDATE_BY_COORDINATOR"
-                                  isFormSubmitting={form.formState.isSubmitting}
-                                  trigger={
-                                    <div className="w-full cursor-pointer rounded-md border px-3 py-2">
-                                      <p className="text-xs text-black/70">
-                                        {scheduleData.title} &#x2022;{" "}
-                                        {convertMinsToTimeString(
-                                          scheduleData.startTime || 0,
-                                        )}{" "}
-                                        -{" "}
-                                        {convertMinsToTimeString(
-                                          scheduleData.endTime || 0,
-                                        )}{" "}
-                                        &#x2022; {scheduleData.venue}
-                                      </p>
-                                      {allSchedulesInfo && (
-                                        <p className="mt-1 line-clamp-3 text-xs">
-                                          Info -{" "}
-                                          {allSchedulesInfo[index]?.info ||
-                                            "not provided"}
-                                        </p>
-                                      )}
-                                    </div>
-                                  }
-                                />
-                              ))
-                            ) : (
-                              <p>No schedules added yet</p>
-                            )}
-                          </div>
-                        </section>
-                      </div>
-                    </div>
-                  )} */}
                 </div>
               </div>
             ))}

@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const ReviewRequestStatusSchema = z.enum(
+  ["NONE", "PENDING", "APPROVED", "REJECTED"],
+  {
+    errorMap: () => ({
+      message:
+        "Review request status must be either 'NONE', 'PENDING', 'APPROVED', or 'REJECTED'.",
+    }),
+  },
+);
+
 // Enum Schemas
 export const RegistrationTypeSchema = z.enum(["TEAM", "INDIVIDUAL", "BOTH"], {
   errorMap: () => ({
@@ -98,25 +108,25 @@ export const CoordinatorManagedData = z.object({
   // about
   shortDescription: z
     .string()
-    .min(50, "Atleast 50 words are required.")
-    .max(100, "Maximum 100 words are allowed."),
+    .min(50, "At least 50 words are required.")
+    .max(200, "Maximum 200 words are allowed."),
   description: z
     .string()
-    .min(100, "Atleast 100 words are required.")
+    .min(100, "At least 100 words are required.")
     .max(400, "Maximum 200 words are allowed."),
 
   // assets
   whatsappGroupURL: z.string().url("WhatsApp group URL must be a valid URL."),
   brochure: z.string().url("Brochure URL must be a valid URL."),
-  coverImage: z.string().min(1, "Cover image is required."),
-  images: z
-    .array(z.string())
-    .min(2, "Add at least 2 images.")
-    .max(5, "Maximum 5 images are allowed."),
+  coverImage: z.string(),
+  images: z.array(z.string()).max(5, "Maximum 5 images are allowed."),
 
   // rules
   judgementCriteria: z.string().optional(),
   disqualificationCriteria: z.string().optional(),
+
+  // materials provided
+  materialsProvided: z.string().optional(),
 });
 
 // Main Event Schema
@@ -143,11 +153,14 @@ export const EventSchema = z.object({
   whatsappGroupURL: z.string().optional(),
   brochure: z.string(),
   coverImage: z.string(),
-  images: z.array(z.string()),
+  images: z.array(z.string()).max(5, "Maximum 5 images are allowed."),
 
   // rules
   judgementCriteria: z.string().optional(),
   disqualificationCriteria: z.string().optional(),
+
+  // resources
+  materialsProvided: z.string().optional(),
 
   // Schedule
   schedule: z
@@ -171,6 +184,9 @@ export const EventSchema = z.object({
     .array(EventCoordinatorSchema)
     // .min(1, "At least one coordinator is required.")
     .max(3, "Maximum 3 coordinators are allowed."),
+
+  // review request status
+  reviewRequestStatus: ReviewRequestStatusSchema.default("NONE").optional(),
 
   // Controllers config
   registrationStatus: RegistrationStatusSchema.default("UPCOMING"),

@@ -1,7 +1,14 @@
 import { z } from "zod";
-import { type AdminSchema } from "@/schema/adminLogin.schema";
+// import { type AdminSchema } from "@/schema/adminLogin.schema";
 import { api } from "@/trpc/server";
 import { type NextRequest, NextResponse } from "next/server";
+
+const AdminSchema = z.object({
+  adminId: z.string().min(1, "Admin ID is required."),
+  password: z
+    .string()
+    .min(6, "Database password must be at least 6 characters long."),
+});
 
 export async function POST(request: NextRequest) {
   try {

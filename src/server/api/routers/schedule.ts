@@ -59,8 +59,7 @@ export const scheduleRouter = createTRPCRouter({
       return schedule;
     }),
 
-
-    // update schedule
+  // update schedule
   updateScheduleById: protectedProcedure
     .input(PartialUpdateEventScheduleSchema)
     .mutation(async ({ ctx, input }) => {
@@ -77,7 +76,7 @@ export const scheduleRouter = createTRPCRouter({
         },
       });
     }),
-  
+
   // createSchedule: protectedProcedure
   //   .input(CreateEventSchema)
   //   .mutation(async ({ ctx, input }) => {

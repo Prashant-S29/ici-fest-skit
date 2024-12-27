@@ -61,8 +61,20 @@ export const CreateEventInfoFormData: CreateEventInfoFormConfig[] = [
     fields: [
       {
         fieldTitle: "Cover Image",
-        fieldDescription:
-          "This will be used as the cover image for your event page. For best results, use a 600px x 500px image",
+        fieldDescription: (
+          <span>
+            This image will be displayed on the event page along with the cover
+            photo.
+            <br />
+            <br />
+            <span className="font-semibold">
+              Maximum size of a image is 4 MB.
+            </span>
+            <br />
+            <span className="italic">(.png, .jpg, .webp)</span>
+          </span>
+        ),
+
         fieldName: "coverImage",
         fieldPlaceholder: "Cover Image URL",
         fieldType: {
@@ -84,9 +96,7 @@ export const CreateEventInfoFormData: CreateEventInfoFormConfig[] = [
             photo.
             <br />
             <br />
-            <span className="font-semibold">
-              Upload Minimum 2 and Maximum 5 photos.
-            </span>
+            <span className="font-semibold">Upload Maximum 5 photos.</span>
             <br />
             <span className="font-semibold">
               Maximum size of each photo is 4 MB.
@@ -110,14 +120,6 @@ export const CreateEventInfoFormData: CreateEventInfoFormConfig[] = [
       },
     ],
   },
-
-  {
-    category: "Structure",
-    categoryId: "structure",
-
-    fields: [],
-  },
-
   {
     category: "Rules",
     categoryId: "rules",
@@ -130,7 +132,7 @@ export const CreateEventInfoFormData: CreateEventInfoFormConfig[] = [
           <span>
             Mention the Judgement Criteria for your event.{" "}
             <span className="font-medium">
-              If having multiple, provide comma after each point.
+              If having multiple, provide (-) after each point.
             </span>
           </span>
         ),
@@ -148,12 +150,39 @@ export const CreateEventInfoFormData: CreateEventInfoFormConfig[] = [
           <span>
             Mention the Disqualification Criteria for your event.{" "}
             <span className="font-medium">
-              If having multiple, provide comma after each point.
+              If having multiple, provide (-) after each point.
             </span>
           </span>
         ),
         fieldName: "disqualificationCriteria",
         fieldPlaceholder: "Disqualification Criteria",
+        fieldType: {
+          type: "textarea",
+        },
+        fieldDataType: "text",
+        className: "h-[150px]",
+      },
+    ],
+  },
+
+  {
+    category: "Resources",
+    categoryId: "materials",
+    isOptional: true,
+
+    fields: [
+      {
+        fieldTitle: "Materials Provided",
+        fieldDescription: (
+          <span>
+            Materials provided by you to the participants during the event.{" "}
+            <span className="font-medium">
+              If having multiple, provide (-) after each point.
+            </span>
+          </span>
+        ),
+        fieldName: "materialsProvided",
+        fieldPlaceholder: "Materials Provided",
         fieldType: {
           type: "textarea",
         },

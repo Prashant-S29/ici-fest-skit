@@ -8,9 +8,10 @@ import { Button } from "@/components/ui";
 import { RefreshIcon } from "@/icons";
 import { ScheduleTable } from "@/components/admin/common/ScheduleTable";
 import { NewScheduleDialog } from "@/components/admin/forms/Schedule";
+import { NoSchedulesFound } from "@/components/admin/common";
 
 const Events: React.FC = () => {
-  const { data, isLoading,  refetch, isFetching } =
+  const { data, isLoading, refetch, isFetching } =
     api.schedule.getAllSchedules.useQuery();
   return (
     <div className="px-[150px] py-[100px]">
@@ -37,9 +38,7 @@ const Events: React.FC = () => {
       ) : data && data.length > 0 ? (
         <ScheduleTable data={data} />
       ) : (
-        <div className="flex items-center justify-center">
-          <p>No Events Found</p>
-        </div>
+        <NoSchedulesFound />
       )}
     </div>
   );

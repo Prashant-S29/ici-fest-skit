@@ -43,15 +43,25 @@ import { CoverImageUploadField } from "../../common/CoverImageUploader";
 
 interface Props {
   field: CreateCoordinatorManageFormFieldConfigProps;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturn<z.infer<typeof CreateCoordinatorManagedData>, any, undefined>;
+  form: UseFormReturn<
+    z.infer<typeof CreateCoordinatorManagedData>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any,
+    undefined
+  >;
   isFormSubmitting: boolean;
+  uploadedCoverImage?: string;
+  uploadedImages?: string[];
+  slug: string;
 }
 
 export const EventInfoFieldProvider: React.FC<Props> = ({
   field,
   form,
   isFormSubmitting,
+  uploadedCoverImage,
+  uploadedImages,
+  slug,
 }) => {
   return (
     <FormField
@@ -97,6 +107,7 @@ export const EventInfoFieldProvider: React.FC<Props> = ({
                       | readonly string[]
                       | undefined
                   }
+                  disabled={isFormSubmitting}
                 />
               ) : field.fieldType.type === "select" ? (
                 <Select
@@ -121,20 +132,23 @@ export const EventInfoFieldProvider: React.FC<Props> = ({
                 field.fieldName === "images" ? (
                 <div>
                   <ImageUploadField
-                    maxFiles={5}
+                    maxFiles={5 - (uploadedImages ? uploadedImages.length : 0)}
                     maxSizePerFileInMB={4}
                     form={form}
                     isFormSubmitting={isFormSubmitting}
+                    uploadedImages={uploadedImages}
+                    slug={slug}
                   />
                 </div>
               ) : (
                 <div>
                   <CoverImageUploadField
-                    maxFiles={1}
+                    maxFiles={1 - (uploadedCoverImage ? 1 : 0)}
                     maxSizePerFileInMB={4}
                     form={form}
                     isFormSubmitting={isFormSubmitting}
-                    
+                    uploadedCoverImage={uploadedCoverImage}
+                    slug={slug}
                   />
                 </div>
               )}

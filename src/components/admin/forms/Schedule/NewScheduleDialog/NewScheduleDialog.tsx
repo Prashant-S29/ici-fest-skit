@@ -146,6 +146,8 @@ export const NewScheduleDialog: React.FC<Props> = ({
     const res = await updateScheduleMutation.mutateAsync({
       id: data?.id,
       ...formData,
+      startTime: convertDateTimeToMin(startTime),
+      endTime: convertDateTimeToMin(endTime),
     });
     if (res) {
       toast.success("Schedule updated successfully");
@@ -157,8 +159,13 @@ export const NewScheduleDialog: React.FC<Props> = ({
       return;
     }
     toast.error("Error in updating schedule");
-    setOpen(false);
     form.reset(SCHEDULE_FORM_DEFAULTS);
+    setOpen(false);
+    // console.log(formData);
+    // console.log(form.getValues())
+    // console.log(startTime)
+    // console.log(endTime)
+    
   };
 
   const [isDeleting, setIsDeleting] = useState(false);

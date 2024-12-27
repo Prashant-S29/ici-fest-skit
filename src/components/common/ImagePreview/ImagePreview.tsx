@@ -10,11 +10,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 interface ImagePreviewProps {
   src: string;
   children: React.ReactNode;
   className?: string;
+  loading?: boolean;
 }
 
 // const customLoader = ({src}: {src: string}) => {
@@ -25,11 +27,17 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   src,
   className,
   children,
+  loading,
 }) => {
   return (
     <Dialog modal>
       <DialogTrigger asChild className="cursor-pointer">
-        {children}
+        <div className="relative">
+          {loading && (
+            <div className="absolute z-[5] flex h-full w-full cursor-not-allowed items-center justify-center rounded-lg bg-black/40"/>
+          )}
+          {children}
+        </div>
       </DialogTrigger>
       <DialogContent
         className={`flex h-screen min-w-full items-center justify-center rounded-none border-none bg-black/10 p-0 shadow-none`}

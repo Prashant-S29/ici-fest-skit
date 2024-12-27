@@ -20,6 +20,7 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        success: "bg-green-600 text-white shadow hover:bg-green-600/90",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -63,7 +64,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={loading || disabled}
         {...props}
-        
       >
         {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
         <Slottable>{children}</Slottable>
