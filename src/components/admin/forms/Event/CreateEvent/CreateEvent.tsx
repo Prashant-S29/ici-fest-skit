@@ -12,9 +12,6 @@ import type { z } from "zod";
 import { useForm, useFieldArray, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-// tRPC
-// import { TRPCError } from "@trpc/server";
-
 // Hooks
 import { useMounted } from "@/hooks";
 // import { api } from "@/trpc/server";
@@ -26,8 +23,6 @@ import {
 } from "@/schema/event.schema";
 
 // utils and Global Hooks
-import { createUpload } from "@/utils/uploadthing";
-import { useCoverImageUploader, useImageUploader } from "@/global/hooks";
 import { EVENT_FORM_DEFAULTS } from "@/global/formDefaults";
 import { api } from "@/trpc/react";
 
@@ -35,7 +30,18 @@ import { api } from "@/trpc/react";
 import { CreateEventFormData } from "./data";
 
 // Components
-import { Button, Form } from "@/components/ui";
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Form,
+} from "@/components/ui";
 import { RegistrationFormDialog } from "../RegistrationFormDialog";
 import { RegistrationFormUpdateDialog } from "../RegistrationFormUpdateDialog";
 import { ScheduleFormDialog } from "../ScheduleFormDialog";
@@ -57,13 +63,12 @@ interface Props {
   state: "CREATE" | "UPDATE";
 }
 
-export const CreateEventForm: React.FC<Props> = ({ data }) => {
+export const CreateEventForm: React.FC<Props> = ({ data, state }) => {
   const isMounted = useMounted();
   const router = useRouter();
 
   // Delete event mutation
   const deleteEventMutation = api.event.deleteEventBySlug.useMutation();
-
 
   const [isEventDeleting, setIsEventDeleting] = useState(false);
 
@@ -134,38 +139,92 @@ export const CreateEventForm: React.FC<Props> = ({ data }) => {
     z.infer<typeof CreateEventSchema>
   > = async () => {
     const formData = { ...data, ...form.getValues() };
+    console.log("formData", formData);
+
     try {
+      const isEventExists = await checkIfEventExists({
+        slug: formData.slug,
+      });
+
+      // for update event
       if (data) {
-        if (data.slug !== formData.slug) {
-          const isEventExists = await checkIfEventExists({
-            slug: formData.slug,
-          });
+        if (data.slug === formData.slug) {
+          // this means eventId is same so no need to check if event exists with same slug
+          const formattedData = {
+            ...EVENT_FORM_DEFAULTS,
+            ...data,
+            ...form.getValues(),
+          };
+          await updateEventMutation.mutateAsync(formattedData);
+          toast.success("Event updated successfully");
+          return;
+        } else {
+          // if eventId is different then check if event exists with same slug
           if (isEventExists) {
             toast.error("Event with this id already exists");
             return;
           }
-        }
-        await updateEventMutation.mutateAsync(formData);
-        toast.success("Event updated successfully");
-      } else {
-        const isEventExists = await checkIfEventExists({ slug: formData.slug });
-        if (isEventExists) {
-          toast.error("Event with this id already exists");
+          // await updateEventMutation.mutateAsync(formData);
+          const formattedData = {
+            ...EVENT_FORM_DEFAULTS,
+            ...data,
+            ...form.getValues(),
+          };
+          await updateEventMutation.mutateAsync(formattedData);
           return;
         }
-        await createEventMutation.mutateAsync(formData);
-        toast.success("Event created successfully");
-        setShowEventWindow(true);
       }
 
+      // for create event
+
+      if (isEventExists) {
+        toast.error("Event with this id already exists");
+        return;
+      }
+
+      await createEventMutation.mutateAsync(formData);
+      toast.success("Event created successfully");
+
       form.reset(EVENT_FORM_DEFAULTS);
-      router.push("/admin/dashboard/events");
+      router.back();
     } catch (error) {
-      console.log("error", error);
       toast.error(`Error in ${data ? "updating" : "creating"} event`, {
         description: JSON.stringify(error),
       });
     }
+
+    // try {
+    //   if (data) {
+    //     if (data.slug !== formData.slug) {
+    //       const isEventExists = await checkIfEventExists({
+    //         slug: formData.slug,
+    //       });
+    //       if (isEventExists) {
+    //         toast.error("Event with this id already exists");
+    //         return;
+    //       }
+    //     }
+    //     await updateEventMutation.mutateAsync(formData);
+    //     toast.success("Event updated successfully");
+    //   } else {
+    //     const isEventExists = await checkIfEventExists({ slug: formData.slug });
+    //     if (isEventExists) {
+    //       toast.error("Event with this id already exists");
+    //       return;
+    //     }
+    //     await createEventMutation.mutateAsync(formData);
+    //     toast.success("Event created successfully");
+    //     setShowEventWindow(true);
+    //   }
+
+    //   form.reset(EVENT_FORM_DEFAULTS);
+    //   router.back();
+    // } catch (error) {
+    //   console.log("error", error);
+    //   toast.error(`Error in ${data ? "updating" : "creating"} event`, {
+    //     description: JSON.stringify(error),
+    //   });
+    // }
   };
 
   const handleDeleteEvent = async () => {
@@ -176,6 +235,41 @@ export const CreateEventForm: React.FC<Props> = ({ data }) => {
       setIsEventDeleting(false);
       router.push("/admin/dashboard/events");
     }
+  };
+
+  const [isFormUpdating, setIsFormUpdating] = useState(false);
+
+  const handleFormUpdate = async () => {
+    setIsFormUpdating(true);
+    const formData = { ...EVENT_FORM_DEFAULTS, ...data, ...form.getValues() };
+    console.log("formData", formData);
+
+    try {
+      const isEventExists = await checkIfEventExists({
+        slug: formData.slug,
+      });
+
+      // if eventId is updated then check if event exists with same slug
+      if (data?.slug !== formData.slug) {
+        if (isEventExists) {
+          toast.error("Event with this id already exists");
+          setIsFormUpdating(false);
+          return;
+        }
+      }
+
+      await updateEventMutation.mutateAsync(formData);
+      toast.success("Event updated successfully");
+      setIsFormUpdating(false);
+
+      form.reset(EVENT_FORM_DEFAULTS);
+      router.back();
+    } catch (error) {
+      toast.error(`Error in updating event`, {
+        description: JSON.stringify(error),
+      });
+    }
+    setIsFormUpdating(false);
   };
 
   if (!isMounted) {
@@ -216,15 +310,36 @@ export const CreateEventForm: React.FC<Props> = ({ data }) => {
               <p className="text-black/70">Update the event details below.</p>
             </section>
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                type="submit"
-                className="w-full"
-                loading={form.formState.isSubmitting || isEventDeleting}
-                disabled={form.formState.isSubmitting || isEventDeleting}
-              >
-                {data ? "Update Event" : "Add Event"}
-              </Button>
+              {state === "UPDATE" ? (
+                <Button
+                  size="sm"
+                  type="button"
+                  className="w-full"
+                  loading={
+                    form.formState.isSubmitting ||
+                    isEventDeleting ||
+                    isFormUpdating
+                  }
+                  disabled={
+                    form.formState.isSubmitting ||
+                    isEventDeleting ||
+                    isFormUpdating
+                  }
+                  onClick={handleFormUpdate}
+                >
+                  Update Event
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  type="submit"
+                  className="w-full"
+                  loading={form.formState.isSubmitting || isEventDeleting}
+                  disabled={form.formState.isSubmitting || isEventDeleting}
+                >
+                  Add Event
+                </Button>
+              )}
             </div>
 
             {/* {JSON.stringify(form.formState.errors)} */}
@@ -241,7 +356,7 @@ export const CreateEventForm: React.FC<Props> = ({ data }) => {
                     key={index}
                     field={field}
                     form={form}
-                    isFormSubmitting={form.formState.isSubmitting }
+                    isFormSubmitting={form.formState.isSubmitting}
                     isEventDeleting={isEventDeleting}
                   />
                 ))}
@@ -442,17 +557,11 @@ export const CreateEventForm: React.FC<Props> = ({ data }) => {
                   </p>
                 </div>
                 <div className="flex w-full justify-end">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    type="submit"
-                    className="w-fit"
-                    loading={form.formState.isSubmitting || isEventDeleting}
-                    disabled={form.formState.isSubmitting || isEventDeleting}
-                    onClick={handleDeleteEvent}
-                  >
-                    Delete Event
-                  </Button>
+                  <DeleteEventConfirmationDialog
+                    handleDeleteEvent={handleDeleteEvent}
+                    isEventDeleting={isEventDeleting}
+                    isFormSubmitting={form.formState.isSubmitting}
+                  />
                 </div>
               </div>
             </div>
@@ -460,5 +569,55 @@ export const CreateEventForm: React.FC<Props> = ({ data }) => {
         </form>
       </Form>
     </div>
+  );
+};
+
+interface DeleteEventConfirmationProps {
+  handleDeleteEvent: () => Promise<void>;
+  isEventDeleting: boolean;
+  isFormSubmitting: boolean;
+}
+
+const DeleteEventConfirmationDialog: React.FC<DeleteEventConfirmationProps> = ({
+  handleDeleteEvent,
+  isEventDeleting,
+  isFormSubmitting,
+}) => {
+  return (
+    <Dialog modal>
+      <DialogTrigger asChild>
+        <Button variant="destructive" size="sm" disabled={isEventDeleting}>
+          Delete this event
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={`max-w-[500px]`}>
+        <DialogHeader>
+          <DialogTitle>Delete Event</DialogTitle>
+          <DialogDescription className="leading-tight">
+            Are you sure you want to delete this event?
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter>
+          <div className="flex gap-2">
+            <DialogClose asChild>
+              <Button variant="secondary" size="sm">
+                Cancel
+              </Button>
+            </DialogClose>
+
+            <Button
+              size="sm"
+              variant="destructive"
+              loading={isEventDeleting}
+              disabled={isEventDeleting || isFormSubmitting}
+              onClick={handleDeleteEvent}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

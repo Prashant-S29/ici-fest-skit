@@ -49,6 +49,13 @@ enum RegistrationStatus {
     CLOSED
 }
 
+enum ReviewRequestStatus {
+    NONE
+    PENDING
+    APPROVED
+    REJECTED
+}
+
 // Event Registration Form
 model EventRegistrationForm {
     id String @id @default(uuid())
@@ -91,8 +98,8 @@ model EventSchedule {
     venue     String
 
     // Relation with Event
-    event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-    eventId String
+    event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+    eventId String?
 }
 
 // Event
@@ -104,15 +111,24 @@ model Event {
     slug       String @unique
     dbPassword String
 
-    // Basic Info
+    category EventCategory @default(EVENT)
+
+    // about
     shortDescription String?
     description      String?
+
+    // assets
+    brochure         String?
     coverImage       String?
-    category         EventCategory @default(EVENT)
+    images           String[]
     whatsappGroupURL String?
 
-    // Brief
-    images String[]
+    // rules
+    judgementCriteria        String?
+    disqualificationCriteria String?
+
+    // resources
+    materialsProvided String?
 
     // Schedule
     schedule EventSchedule[]
@@ -128,6 +144,36 @@ model Event {
     // Controllers Config
     registrationStatus RegistrationStatus
     isHidden           Boolean            @default(false)
+
+    // coordinator managed data
+    coordinatorManagedData CoordinatorManagedData?
+
+    // update review request status
+    reviewRequestStatus ReviewRequestStatus @default(NONE)
+}
+
+model CoordinatorManagedData {
+    id        String @id @default(uuid())
+    eventSlug String @unique
+
+    // about
+    shortDescription String
+    description      String
+
+    // assets
+    whatsappGroupURL String
+    brochure         String
+    coverImage       String
+    images           String[]
+
+    // rules
+    judgementCriteria        String?
+    disqualificationCriteria String?
+
+    // resources
+    materialsProvided String?
+
+    event Event? @relation(fields: [eventSlug], references: [slug], onDelete: Cascade)
 }
 
 enum Role {
@@ -162,7 +208,6 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(uuid())
@@ -170,12 +215,12 @@ model Account {
     type                     String
     provider                 String
     providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
+    refresh_token            String?
+    access_token             String?
     expires_at               Int?
     token_type               String?
     scope                    String?
-    id_token                 String? // @db.Text
+    id_token                 String?
     session_state            String?
     user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
     refresh_token_expires_in Int?

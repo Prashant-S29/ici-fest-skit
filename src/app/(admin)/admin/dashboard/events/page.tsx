@@ -8,12 +8,13 @@ import { EventTable } from "@/components/admin/common/EventTable";
 import { Button } from "@/components/ui";
 import Link from "next/link";
 import { RefreshIcon } from "@/icons";
+import { NoEventsFound } from "@/components/admin/common";
 
 const Events: React.FC = () => {
   const { data, isLoading, refetch, isFetching } =
     api.event.getAllEvents.useQuery();
   return (
-    <div className="px-[150px] py-[50px]">
+    <div className="px-[150px] py-[100px]">
       <section className="flex w-full items-center justify-between">
         <p className="text-xl font-semibold">
           All Events{" "}
@@ -45,9 +46,7 @@ const Events: React.FC = () => {
       ) : data?.formattedData && data.formattedData.length > 0 ? (
         <EventTable data={data.formattedData} />
       ) : (
-        <div className="flex items-center justify-center">
-          <p>No Events Found</p>
-        </div>
+        <NoEventsFound />
       )}
     </div>
   );

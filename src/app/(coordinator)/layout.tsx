@@ -1,17 +1,13 @@
 import "@/styles/globals.css";
 
-// import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
-
-// tRPC
-import { TRPCReactProvider } from "@/trpc/react";
 
 // Font
 import { montserrat } from "@/fonts";
 
-// Components
-// import { Toaster } from "@/components/ui";
-import { Toaster } from "sonner";
+import { Providers } from "@/utils/Providers";
+import { auth } from "@/server/auth";
+import { Navbar } from "@/components/coordinator/Layout/Navbar";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -19,16 +15,18 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-export default function CoordinatorLayout({
+export default async function CoordinatorLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth();
+
   return (
     <html lang="en" className={`${montserrat.className}`}>
       <body>
-        <TRPCReactProvider>
-          <Toaster richColors closeButton />
+        <Providers session={session}>
+          <Navbar />
           {children}
-        </TRPCReactProvider>
+        </Providers>
       </body>
     </html>
   );

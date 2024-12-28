@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
+import { env } from "@/env";
 
 /**
  * 1. CONTEXT
@@ -30,9 +31,10 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
   const session = await auth();
 
   return {
+    header: opts.headers,
     db,
     session,
-  ...opts,
+    ...opts,
   };
 };
 
@@ -121,7 +123,12 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
-    if (!ctx.session || !ctx.session.user) {
+    if (
+      !ctx.session ||
+      !ctx.session.user ||
+      (ctx.session.user.role !== "COORDINATOR" &&
+        ctx.session.user.role !== "ADMIN")
+    ) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
     return next({
@@ -131,3 +138,42 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+// Super Admin Procedure Middleware
+export const superAdminProcedureMiddleware = t.middleware(
+  async ({ ctx, next }) => {
+    const superAdminPassHeader = ctx.header.get("super_admin_pass");
+
+    if (
+      !superAdminPassHeader ||
+      superAdminPassHeader !== env.SUPER_ADMIN_PASS
+    ) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Invalid or missing SUPER_ADMIN_PASS header",
+      });
+    }
+
+    return next();
+  },
+);
+
+// Admin Procedure Middleware
+export const adminProcedureMiddleware = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.session || !ctx.session.user || ctx.session.user.role !== "ADMIN") {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid or missing SUPER_ADMIN_PASS header",
+    });
+  }
+
+  return next();
+});
+
+// Super Admin Procedure
+export const superAdminProcedure = t.procedure.use(
+  superAdminProcedureMiddleware,
+);
+
+// Admin Procedure
+export const adminProcedure = t.procedure.use(adminProcedureMiddleware);

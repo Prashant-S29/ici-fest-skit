@@ -3,22 +3,13 @@ import "@/styles/globals.css";
 // import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 
-// tRPC
-import { TRPCReactProvider } from "@/trpc/react";
-
 // Font
 import { montserrat } from "@/fonts";
 
-// UploadThing Hydration Config
-import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
-import { extractRouterConfig } from "uploadthing/server";
-// import { ourFileRouter } from "~/app/api/uploadthing/core";
-
 // Components
-// import { Toaster } from "@/components/ui";
 import { Footer, Navbar } from "../../components/layout";
-import { ourFileRouter } from "../api/uploadthing/core";
-import { Toaster } from "sonner";
+import { Providers } from "@/utils/Providers";
+import { auth } from "@/server/auth";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -26,28 +17,19 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth();
+
   return (
     <html lang="en" className={`${montserrat.className}`}>
       <body>
-        <TRPCReactProvider>
-          <Toaster richColors  closeButton />
+        <Providers session={session}>
           <Navbar />
-
-          <NextSSRPlugin
-            /**
-             * The `extractRouterConfig` will extract **only** the route configs
-             * from the router to prevent additional information from being
-             * leaked to the client. The data passed to the client is the same
-             * as if you were to fetch `/api/uploadthing` directly.
-             */
-            routerConfig={extractRouterConfig(ourFileRouter)}
-          />
           {children}
           <Footer />
-        </TRPCReactProvider>
+        </Providers>
       </body>
     </html>
   );

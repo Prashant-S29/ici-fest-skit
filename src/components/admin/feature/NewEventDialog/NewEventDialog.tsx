@@ -27,8 +27,8 @@ export const NewEventDialog: React.FC = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[500px] overflow-y-scroll ">
-          <CreateEventForm />
+        <div className="max-h-[500px] overflow-y-scroll">
+          <CreateEventForm state="CREATE" />
         </div>
       </DialogContent>
     </Dialog>

@@ -43,10 +43,23 @@ export const RegistrationFormUpdateDialog: React.FC<Props> = ({
   if (!data) return null;
 
   return (
-    <div className="flex w-full justify-between rounded-lg border px-3 py-2">
+    <div className="flex w-full justify-between rounded-lg border px-3 py-2 pr-2">
       <section className="w-full text-left">
-        <p className="text-xs text-black/70">Form {updateIndex + 1}</p>
-        <div className="flex w-full justify-between gap-9">
+        <section className="w-full flex justify-between items-center">
+          <p className="text-xs text-black/70">Form {updateIndex + 1}</p>
+          {data.isActive ? (
+            <p className="flex items-center justify-center gap-1 rounded-full leading-none bg-green-600/10 px-2 py-1 text-[9px] font-medium text-green-600">
+              <span className="min-w-[5px] h-[5px] rounded-full bg-green-600" />
+              active
+            </p>
+          ) : (
+            <p className="flex items-center justify-center gap-1 rounded-full leading-none bg-destructive/10 px-2 py-1 text-[9px] font-medium text-destructive">
+              <span className="min-w-[5px] h-[5px] rounded-full bg-destructive" />
+              not active
+            </p>
+          )}
+        </section>
+        <div className="flex w-full justify-between gap-9 mt-2">
           <p className="mt-1 line-clamp-1 text-sm font-medium leading-tight">
             {data.title}
           </p>

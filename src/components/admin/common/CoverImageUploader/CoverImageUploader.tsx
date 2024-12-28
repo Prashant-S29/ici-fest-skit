@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from "react";
+import React, {  useState } from "react";
 import Image from "next/image";
 
 // Zod, RDZ and RHF
@@ -26,9 +26,15 @@ import { X } from "lucide-react";
 // import { Button, ToastProps } from "@/components/ui";
 
 // Schema
-import type { CreateEventSchema } from "@/schema/event.schema";
+import type { CreateCoordinatorManagedData } from "@/schema/event.schema";
 import { useToast } from "@/hooks";
-import { useCoverImageUploader, useImageUploader } from "@/global/hooks";
+import {
+  useCoverImageUploader,
+} from "@/global/hooks";
+import { ImagePreview } from "@/components/common";
+import { Button } from "@/components/ui";
+import { api } from "@/trpc/react";
+import { toast } from "sonner";
 
 interface FileWithPreview extends File {
   preview: string;
@@ -38,8 +44,14 @@ interface ImageUploadFieldProps {
   maxFiles?: number;
   minFiles?: number;
   maxSizePerFileInMB?: number;
-  form: UseFormReturn<z.infer<typeof CreateEventSchema>, any, undefined>;
+  form: UseFormReturn<
+    z.infer<typeof CreateCoordinatorManagedData>,
+    any,
+    undefined
+  >;
   isFormSubmitting: boolean;
+  uploadedCoverImage?: string;
+  slug: string;
 }
 
 // Custom hook to manage file upload logic
@@ -47,11 +59,12 @@ interface ImageUploadFieldProps {
 interface UseImageUploadFieldProps {
   maxFiles: number;
   maxSizePerFileInMB: number;
-  setValue: UseFormSetValue<z.infer<typeof CreateEventSchema>>;
+  setValue: UseFormSetValue<z.infer<typeof CreateCoordinatorManagedData>>;
   setStagedFiles: (files: FileWithPreview[]) => void;
   stagedFiles: FileWithPreview[];
   images: FileWithPreview[];
   setImages: (images: FileWithPreview[]) => void;
+  slug: string;
 }
 
 const useImageUpload = ({
@@ -60,8 +73,8 @@ const useImageUpload = ({
   setValue,
   setStagedFiles,
   stagedFiles,
-  images,
   setImages,
+  slug,
 }: UseImageUploadFieldProps) => {
   const { toast } = useToast();
 
@@ -97,11 +110,22 @@ const useImageUpload = ({
         }
         return true;
       })
-      .map((file) =>
-        Object.assign(file, {
-          preview: URL.createObjectURL(file),
-        }),
-      );
+      // .map((file) =>
+      //   Object.assign(file, {
+      //     preview: URL.createObjectURL(file),
+      //   }),
+      // );
+      .map((file, index) => {
+        const renamedFile = new File(
+          [file],
+          `${slug}_cover_image_${index + 1}${file.name.substring(file.name.lastIndexOf("."))}`, // Add index and preserve file extension
+          { type: file.type },
+        );
+
+        return Object.assign(renamedFile, {
+          preview: URL.createObjectURL(renamedFile),
+        });
+      });
 
     // Combine existing and new files
     const updatedFiles = [...currentFiles, ...validFiles].slice(0, maxFiles);
@@ -149,9 +173,14 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
   maxSizePerFileInMB = 4,
   form,
   isFormSubmitting,
+  uploadedCoverImage,
+  slug,
 }) => {
+  // const { images: uploadedCoverImage, setImages: setUploadedCoverImage } =
+  // useUploadedCoverImage();
+
   const { control, setValue } = useFormContext<
-    z.infer<typeof CreateEventSchema>,
+    z.infer<typeof CreateCoordinatorManagedData>,
     any,
     undefined
   >();
@@ -170,6 +199,7 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
     stagedFiles,
     images,
     setImages,
+    slug,
   });
 
   // Use dropzone hook
@@ -182,6 +212,59 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
     maxFiles,
     disabled: isFormSubmitting,
   });
+
+  const deleteFilesMutation = api.file.deleteFiles.useMutation();
+  const updateCoverImageMutation = api.event.updateCoverImage.useMutation();
+
+  const updateReviewRequestStatusMutation =
+    api.event.updateReviewRequestStatus.useMutation();
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadedCoverImageDeleted, setIsUploadedCoverImageDeleted] =
+    useState(false);
+
+  const deleteUploadedCoverImage = async ({
+    url,
+    setIsDeleted,
+  }: {
+    url: string;
+    setIsDeleted: React.Dispatch<React.SetStateAction<boolean>>;
+  }) => {
+    console.log(uploadedCoverImage);
+    setIsDeleting(true);
+
+    const res = await deleteFilesMutation.mutateAsync({
+      fileUrls: [url],
+    });
+
+    if (res.success) {
+      if (!uploadedCoverImage) return;
+
+      const imageUpdateRes = await updateCoverImageMutation.mutateAsync({
+        slug,
+        coverImage: "",
+      });
+
+      if (imageUpdateRes.id) {
+        toast.success("Image deleted successfully");
+        uploadedCoverImage = "";
+        setIsDeleted(true);
+        setIsUploadedCoverImageDeleted(true);
+        await updateReviewRequestStatusMutation.mutateAsync({
+          slug,
+          status: "PENDING",
+        });
+        // setValue("images", uploadedImages.filter((file) => file !== url));
+        location.reload();
+
+        setIsDeleting(false);
+        return;
+      }
+    }
+
+    setIsDeleting(false);
+    toast.error("Error deleting image");
+  };
 
   return (
     <Controller
@@ -220,7 +303,13 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
                       Drag n drop some files here
                     </p>
                     <p className="text-xs leading-none text-gray-500">
-                      or click to select files
+                      or click to select files (
+                      {uploadedCoverImage === undefined
+                        ? isUploadedCoverImageDeleted
+                          ? 0
+                          : 1
+                        : stagedFiles.length}
+                      /1)
                     </p>
                   </>
                 )}
@@ -229,43 +318,104 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
 
             {/* Preview Grid */}
             {stagedFiles.length > 0 && (
-              <div>
-                <div className="mt-4 grid grid-cols-5 gap-4">
+              <div className="mt-4">
+                <p className="text-xs text-black/70">New Upload(s)</p>
+                <div className="mt-1 grid grid-cols-5 gap-4">
                   {stagedFiles.map((file) => (
                     <div key={file.preview} className="group relative">
-                      <Image
-                        src={file.preview}
-                        alt={file.name || "helloWorld"}
-                        width={200}
-                        height={200}
-                        className="h-24 w-full rounded-lg border object-cover"
-                        onLoad={() => URL.revokeObjectURL(file.preview)}
-                      />
-                      <button
+                      <ImagePreview src={file.preview} key={file.preview}>
+                        <Image
+                          src={file.preview}
+                          alt={file.name || "helloWorld"}
+                          width={200}
+                          height={200}
+                          className="h-24 w-full rounded-lg border object-cover"
+                          // onLoad={() => URL.revokeObjectURL(file.preview)}
+                        />
+                      </ImagePreview>
+                      <Button
+                        size="icon"
                         type="button"
+                        disabled={isDeleting}
                         onClick={() => removeFile(file)}
-                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        className="absolute right-1 top-1 h-auto w-fit rounded-full bg-red-500 p-1 text-white opacity-0 shadow-none transition-opacity hover:bg-red-500 group-hover:opacity-100"
                       >
                         <X className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
 
-                {/* <div className="mt-2">
-                  <Button
-                    size="sm"
-                    disabled={isUploading}
-                    onClick={() => handleFileUpload()}
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                </div> */}
+            {/* Uploaded Cover Image*/}
+            {uploadedCoverImage && uploadedCoverImage !== "" && (
+              <div className="mt-4">
+                <p className="text-xs text-black/70">Uploaded Image(s)</p>
+                <div className="mt-1 grid grid-cols-5 gap-4">
+                  <div className="group relative">
+                    <ImageContainer
+                      isDeleting={isDeleting}
+                      uploadedCoverImage={uploadedCoverImage}
+                      deleteUploadedCoverImage={deleteUploadedCoverImage}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
         );
       }}
     />
+  );
+};
+
+const ImageContainer = ({
+  isDeleting,
+  uploadedCoverImage,
+  deleteUploadedCoverImage,
+}: {
+  uploadedCoverImage: string;
+  isDeleting?: boolean;
+  deleteUploadedCoverImage: ({
+    url,
+    setIsDeleted,
+  }: {
+    url: string;
+    setIsDeleted: React.Dispatch<React.SetStateAction<boolean>>;
+  }) => Promise<void>;
+}) => {
+  const [isDeleted, setIsDeleted] = useState(false);
+
+  return (
+    <div className={`group relative ${isDeleted && "hidden"}`}>
+      <ImagePreview src={uploadedCoverImage} loading={isDeleting}>
+        <Image
+          src={uploadedCoverImage}
+          alt="hello"
+          width={200}
+          height={200}
+          className="h-24 w-full rounded-lg border object-cover"
+          unoptimized
+          // onLoad={() => URL.revokeObjectURL(file.preview)}
+        />
+      </ImagePreview>
+      <Button
+        size="icon"
+        type="button"
+        loading={isDeleting}
+        disabled={isDeleting}
+        // onClick={() => removeFile(file)}
+        onClick={async () =>
+          await deleteUploadedCoverImage({
+            url: uploadedCoverImage,
+            setIsDeleted: setIsDeleted,
+          })
+        }
+        className="absolute right-1 top-1 h-auto w-fit rounded-full bg-red-500 p-1 text-white opacity-0 shadow-none transition-opacity hover:bg-red-500 group-hover:opacity-100"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
   );
 };

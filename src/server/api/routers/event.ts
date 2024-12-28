@@ -1,18 +1,19 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import {
+  adminProcedure,
   createTRPCRouter,
-  // protectedProcedure,
-  publicProcedure,
+  protectedProcedure,
 } from "@/server/api/trpc";
 
 import {
   CreateEventSchema,
+  PartialUpdateCoordinatorManagedData,
   PartialUpdateEventSchema,
 } from "@/schema/event.schema";
 import type { Event } from "@prisma/client";
 import { z } from "zod";
 import type { tableConfigDataType } from "@/app/(admin)/admin/dashboard/events/eventTableConfig";
-import { env } from "@/env";
+import { getEndpoint } from "@/utils/getEndpoint";
 
 // TODO: add validation, protectedProcedure
 
@@ -23,7 +24,7 @@ export type GetAllEventsResponse = {
 
 export const eventRouter = createTRPCRouter({
   // get all events
-  getAllEvents: publicProcedure.query(
+  getAllEvents: protectedProcedure.query(
     async ({ ctx }): Promise<GetAllEventsResponse> => {
       const events = await ctx.db.event.findMany({
         include: {
@@ -39,16 +40,11 @@ export const eventRouter = createTRPCRouter({
         title: data.title,
         eventId: data.slug,
         eventDbPassword: data.dbPassword,
-        eventDbURL:
-          env.NODE_ENV === "production"
-            ? `https://icifest.skit.ac.in/event-dashboard/${data.slug}`
-            : `http://localhost:3000/event-dashboard/${data.slug}`,
+        eventDbURL: getEndpoint(`coordinator/dashboard/${data.slug}`),
         isHidden: data.isHidden,
         registrationStatus: data.registrationStatus,
-        schedule: data.schedule.map((schedule) => ({
-          title: schedule.title,
-          date: schedule.date,
-        })),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        reviewRequestStatus: data.reviewRequestStatus,
       }));
 
       return events
@@ -64,7 +60,7 @@ export const eventRouter = createTRPCRouter({
   ),
 
   // get event by id
-  getEventById: publicProcedure
+  getEventById: protectedProcedure
     .input(z.object({ id: z.string().min(1, "id is required") }))
     .query(async ({ ctx, input }) => {
       const event = await ctx.db.event.findUnique({
@@ -81,7 +77,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // get event by slug
-  getEventBySlug: publicProcedure
+  getEventBySlug: protectedProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
       const event = await ctx.db.event.findUnique({
@@ -115,6 +111,8 @@ export const eventRouter = createTRPCRouter({
         title: event.title,
         coordinators: event.coordinators || [],
         registrationType: event.registrationType,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        reviewRequestStatus: event.reviewRequestStatus,
         id: event.id,
       };
 
@@ -122,7 +120,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // create event
-  createEvent: publicProcedure
+  createEvent: adminProcedure
     .input(CreateEventSchema)
     .mutation(async ({ ctx, input }) => {
       // return
@@ -161,6 +159,21 @@ export const eventRouter = createTRPCRouter({
               create: input.coordinators,
             },
 
+            // coordinator managed data
+            coordinatorManagedData: {
+              create: {
+                brochure: "",
+                coverImage: "",
+                images: [],
+                judgementCriteria: "",
+                disqualificationCriteria: "",
+                whatsappGroupURL: "",
+                shortDescription: "",
+                description: "",
+                materialsProvided: "",
+              },
+            },
+
             // controllers config
             registrationStatus: input.registrationStatus,
             isHidden: input.isHidden,
@@ -181,45 +194,10 @@ export const eventRouter = createTRPCRouter({
       }
     }),
 
-  // // update event by id
-  // updateEventById: publicProcedure
-  //   .input(PartialUpdateEventSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     console.log(input);
-
-  //     const { schedule, registrationForm, coordinators, id, ...rest } = input;
-
-  //     return ctx.db.event.update({
-  //       where: {
-  //         id: id,
-  //       },
-  //       data: {
-  //         id: id,
-  //         ...rest, // Update the rest of the fields
-  //         // schedule
-  //         schedule: {
-  //           deleteMany: {}, // Deletes all existing schedules (optional based on requirements)
-  //           create: schedule, // Add new schedules
-  //         },
-
-  //         // registration
-  //         registrationForm: {
-  //           deleteMany: {}, // Deletes all existing registration forms (optional based on requirements)
-  //           create: registrationForm,
-  //         },
-
-  //         // coordinators
-  //         coordinators: {
-  //           deleteMany: {}, // Deletes all existing coordinators (optional based on requirements)
-  //           create: coordinators,
-  //         },
-  //       },
-  //     });
-  //   }),
-
-  updateEventById: publicProcedure
+  updateEventById: adminProcedure
     .input(PartialUpdateEventSchema)
     .mutation(async ({ ctx, input }) => {
+      console.log("input", input);
       const { schedule, registrationForm, coordinators, id, ...rest } = input;
 
       return ctx.db.event.update({
@@ -256,8 +234,71 @@ export const eventRouter = createTRPCRouter({
       });
     }),
 
+  updateEventBySlug: adminProcedure
+    .input(PartialUpdateEventSchema)
+    .mutation(async ({ ctx, input }) => {
+      console.log("input", input);
+      const { schedule, registrationForm, coordinators, id, ...rest } = input;
+
+      return ctx.db.event.update({
+        where: {
+          slug: input.slug, // The event ID to be updated
+        },
+        data: {
+          ...rest, // Update the remaining fields for the event
+
+          // Schedule: Clear existing and add new entries
+          schedule: {
+            deleteMany: {}, // Deletes all existing schedules (optional, filters can be added)
+            create: schedule?.map(
+              ({ id: _, eventId: __, ...restSchedule }) => restSchedule,
+            ), // Map to exclude id and eventId
+          },
+
+          // Registration Forms: Clear existing and add new entries
+          registrationForm: {
+            deleteMany: {}, // Deletes all existing registration forms
+            create: registrationForm?.map(
+              ({ id: _, eventId: __, ...restForm }) => restForm,
+            ), // Exclude id and eventId
+          },
+
+          // Coordinators: Clear existing and add new entries
+          coordinators: {
+            deleteMany: {}, // Deletes all existing coordinators
+            create: coordinators?.map(
+              ({ id: _, eventId: __, ...restCoordinator }) => restCoordinator,
+            ), // Exclude id and eventId
+          },
+        },
+      });
+    }),
+
+  // update eventInfo
+  updateEventInfoBySlug: adminProcedure
+    .input(PartialUpdateEventSchema)
+    .mutation(async ({ ctx, input }) => {
+      console.log("input", input);
+      return ctx.db.event.update({
+        where: {
+          slug: input.slug,
+        },
+        data: {
+          brochure: input.brochure,
+          coverImage: input.coverImage,
+          images: input.images,
+          judgementCriteria: input.judgementCriteria,
+          disqualificationCriteria: input.disqualificationCriteria,
+          whatsappGroupURL: input.whatsappGroupURL,
+          shortDescription: input.shortDescription,
+          description: input.description,
+          materialsProvided: input.materialsProvided,
+          reviewRequestStatus: input.reviewRequestStatus,
+        },
+      });
+    }),
   // delete event by slug
-  deleteEventBySlug: publicProcedure
+  deleteEventBySlug: adminProcedure
     .input(z.object({ slug: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.delete({
@@ -268,7 +309,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // delete multiple events by ids
-  deleteMultipleEventsByIds: publicProcedure
+  deleteMultipleEventsByIds: adminProcedure
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.deleteMany({
@@ -281,7 +322,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // hide event by slug
-  hideEventBySlug: publicProcedure
+  hideEventBySlug: adminProcedure
     .input(z.object({ slug: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.update({
@@ -295,7 +336,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // hide multiple events by ids
-  hideMultipleEventsByIds: publicProcedure
+  hideMultipleEventsByIds: adminProcedure
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.updateMany({
@@ -311,7 +352,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // unhide event by slug
-  unhideEventBySlug: publicProcedure
+  unhideEventBySlug: adminProcedure
     .input(z.object({ slug: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.update({
@@ -325,7 +366,7 @@ export const eventRouter = createTRPCRouter({
     }),
 
   // unhide multiple events by ids
-  unhideMultipleEventsByIds: publicProcedure
+  unhideMultipleEventsByIds: adminProcedure
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.event.updateMany({
@@ -336,6 +377,116 @@ export const eventRouter = createTRPCRouter({
         },
         data: {
           isHidden: true,
+        },
+      });
+    }),
+
+  // get coordinator managed data by id
+  getCoordinatorManagedDataById: protectedProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const coordinatorManagedData =
+        await ctx.db.coordinatorManagedData.findUnique({
+          where: {
+            eventSlug: input.slug,
+          },
+        });
+      return coordinatorManagedData ?? null;
+    }),
+
+  // update coordinator managed data
+  updateCoordinatorManagedDataById: protectedProcedure
+    .input(PartialUpdateCoordinatorManagedData.extend({ slug: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { slug, ...updateData } = input;
+      return ctx.db.coordinatorManagedData.update({
+        where: {
+          eventSlug: slug,
+        },
+        data: {
+          brochure: updateData.brochure,
+          coverImage: updateData.coverImage,
+          images: updateData.images,
+          judgementCriteria: updateData.judgementCriteria,
+          disqualificationCriteria: updateData.disqualificationCriteria,
+          materialsProvided: updateData.materialsProvided,
+          whatsappGroupURL: updateData.whatsappGroupURL,
+          shortDescription: updateData.shortDescription,
+          description: updateData.description,
+          eventSlug: slug,
+        },
+      });
+    }),
+
+  updateCoverImage: protectedProcedure
+    .input(z.object({ slug: z.string(), coverImage: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { slug, coverImage } = input;
+      console.log("coverImage", coverImage);
+      console.log("slug", slug);
+      return ctx.db.coordinatorManagedData.update({
+        where: {
+          eventSlug: slug,
+        },
+        data: {
+          coverImage: input.coverImage,
+        },
+      });
+    }),
+
+  // update images
+  updateImages: protectedProcedure
+    .input(z.object({ slug: z.string(), images: z.array(z.string()) }))
+    .mutation(async ({ ctx, input }) => {
+      const { slug, images } = input;
+      return ctx.db.coordinatorManagedData.update({
+        where: {
+          eventSlug: slug,
+        },
+        data: {
+          images: images,
+        },
+      });
+    }),
+
+  // get admin managed data by id
+  getAdminManagedDataById: adminProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const adminManagedData = await ctx.db.event.findUnique({
+        where: {
+          slug: input.slug,
+        },
+        select: {
+          shortDescription: true,
+          description: true,
+          whatsappGroupURL: true,
+          brochure: true,
+          coverImage: true,
+          images: true,
+          judgementCriteria: true,
+          disqualificationCriteria: true,
+        },
+      });
+      return adminManagedData ?? null;
+    }),
+
+  // update review request status
+  updateReviewRequestStatus: protectedProcedure
+    .input(
+      z.object({
+        slug: z.string(),
+        status: z.enum(["PENDING", "APPROVED", "REJECTED", "NONE"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { slug, status } = input;
+      return ctx.db.event.update({
+        where: {
+          slug: slug,
+        },
+        data: {
+          reviewRequestStatus: status,
         },
       });
     }),

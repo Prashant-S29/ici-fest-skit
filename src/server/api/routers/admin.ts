@@ -1,23 +1,19 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-import {
-  createTRPCRouter,
-  // protectedProcedure,
-  publicProcedure,
-} from "@/server/api/trpc";
+// import { AdminSchema } from "@/schema/adminLogin.schema";
+import { AdminLoginSchema } from "@/schema/admin.schema";
+import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 
-import { z } from "zod";
-
-// TODO: add validation, protectedProcedure
 
 export const adminRouter = createTRPCRouter({
-  getAdminByAdminId: publicProcedure
-    .input(z.object({ adminId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const admin = await ctx.db.admin.findUnique({
-        where: {
+  addAdmin: publicProcedure
+    .input(AdminLoginSchema)
+    .mutation(async ({ ctx, input }) => {
+      const admin = await ctx.db.admin.create({
+        data: {
           adminId: input.adminId,
+          password: input.password,
         },
       });
+
       return admin;
     }),
 });

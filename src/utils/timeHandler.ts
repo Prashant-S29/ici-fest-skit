@@ -26,11 +26,11 @@ export const convertTimeStringToMin = (timeStr: string): number => {
 
   return totalMinutes;
 };
-
 /**
  * Converts a number of minutes past midnight into a time string in 12-hour format with AM/PM.
+ * Ensures the hour is always two digits.
  * @param minutes - The total minutes past midnight.
- * @returns The formatted time string in "hh:mm AM/PM" format or "hh:mm Noon".
+ * @returns The formatted time string in "hh:mm AM/PM" format.
  */
 export const convertMinsToTimeString = (minutes: number): string => {
   if (minutes < 0 || minutes >= 24 * 60) {
@@ -42,14 +42,11 @@ export const convertMinsToTimeString = (minutes: number): string => {
   const period = hours24 >= 12 ? "PM" : "AM";
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
 
+  // Format hours and minutes with leading zero if needed
+  const formattedHours = hours12.toString().padStart(2, "0");
   const formattedMins = mins.toString().padStart(2, "0");
 
-  // Handle Noon
-  if (hours24 === 12 && mins === 0) {
-    return "12:00 Noon";
-  }
-
-  return `${hours12}:${formattedMins} ${period}`;
+  return `${formattedHours}:${formattedMins} ${period}`;
 };
 
 export const convertDateStringToMin = (dateString: string): number => {
@@ -124,4 +121,13 @@ export const convertMinToDate = (minutes: number): Date => {
   );
 
   return targetDate; // Return the Date object
+};
+
+export const convertDateTimeToMin = (date: Date): number => {
+  // Extract the hours and minutes from the date
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+
+  // Convert hours to minutes and add the minutes
+  return hours * 60 + minutes;
 };

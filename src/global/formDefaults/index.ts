@@ -1,4 +1,6 @@
 import type {
+  CreateCoordinatorManagedData,
+  // CreateEventInfoSchema,
   CreateEventRegistrationFormSchema,
   CreateEventScheduleSchema,
   CreateEventSchema,
@@ -23,6 +25,23 @@ export const EVENT_FORM_DEFAULTS: z.infer<typeof CreateEventSchema> = {
   schedule: [],
   isHidden: false,
   registrationStatus: "UPCOMING",
+  brochure: "",
+  judgementCriteria: "",
+  disqualificationCriteria: "",
+};
+
+export const COORDINATOR_MANAGED_FORM_DEFAULTS: z.infer<
+  typeof CreateCoordinatorManagedData
+> = {
+  shortDescription: "",
+  description: "",
+  coverImage: "https://me.com",
+  images: ["https://me.com", "https://me.com"],
+  whatsappGroupURL: "",
+  brochure: "",
+  judgementCriteria: "",
+  disqualificationCriteria: "",
+  materialsProvided: "",
 };
 
 export const REGISTRATION_FORM_DEFAULTS: z.infer<

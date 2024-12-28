@@ -18,6 +18,7 @@ export const env = createEnv({
     UPLOADTHING_TOKEN: z.string(),
     ADMIN_ID: z.string(),
     ADMIN_PASSWORD: z.string(),
+    SUPER_ADMIN_PASS: z.string(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -46,6 +47,7 @@ export const env = createEnv({
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     ADMIN_ID: process.env.ADMIN_ID,
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+    SUPER_ADMIN_PASS: process.env.SUPER_ADMIN_PASS,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

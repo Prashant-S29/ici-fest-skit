@@ -1,15 +1,27 @@
 "use client";
 
+import React, { useState } from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { z } from "zod";
-import { RegistrationStatusSchema } from "@/schema/event.schema";
-import { useState } from "react";
-import { Button } from "@/components/ui";
-import { CopyIcon, DeleteIcon, EditIcon, MoreIconDots } from "@/icons";
+// zod
+import type { z } from "zod";
+
+// Schema
+import type {
+  RegistrationStatusSchema,
+  ReviewRequestStatusSchema,
+} from "@/schema/event.schema";
+
+// Icons
+import { CopyIcon, MoreIconDots } from "@/icons";
+
+// Hooks
 import { useCopyToClipboard } from "@/hooks";
+
+// Components
+import { Button } from "@/components/ui";
 import { toast } from "sonner";
-import Link from "next/link";
 
 export interface tableConfigDataType {
   id: string;
@@ -19,11 +31,7 @@ export interface tableConfigDataType {
   eventDbURL: string;
   isHidden: boolean;
   registrationStatus: z.infer<typeof RegistrationStatusSchema>;
-  schedule: {
-    title: string;
-    date: string;
-  }[];
-  // actions
+  reviewRequestStatus: z.infer<typeof ReviewRequestStatusSchema>;
 }
 
 export const tableConfig: ColumnDef<tableConfigDataType>[] = [
@@ -32,9 +40,7 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
     header: "Title",
     cell: ({ row }) => {
       const { title } = row.original;
-      return (
-        <p className="line-clamp-1 w-[150px] pr-[30px] font-medium">{title}</p>
-      );
+      return <p className="line-clamp-1 pr-[30px] font-medium">{title}</p>;
     },
   },
 
@@ -89,6 +95,14 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
     cell: ({ row }) => {
       const { isHidden } = row.original;
       return <EventHiddenStatusPill isHidden={isHidden} />;
+    },
+  },
+  {
+    accessorKey: "reviewRequestStatus",
+    header: "Review Update Status",
+    cell: ({ row }) => {
+      const { reviewRequestStatus } = row.original;
+      return <ReviewUpdateStatusPill status={reviewRequestStatus} />;
     },
   },
 
@@ -151,6 +165,56 @@ const EventHiddenStatusPill = ({ isHidden }: { isHidden: boolean }) => {
     </div>
   );
 };
+export const ReviewUpdateStatusPill = ({
+  status,
+}: {
+  status: z.infer<typeof ReviewRequestStatusSchema>;
+}) => {
+  const getStatusStyles = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return {
+          container: "bg-yellow-600/10 text-yellow-600",
+          dot: "bg-yellow-600",
+          text: "Pending",
+        };
+      case "APPROVED":
+        return {
+          container: "bg-green-600/10 text-green-600",
+          dot: "bg-green-600",
+          text: "Approved",
+        };
+      case "REJECTED":
+        return {
+          container: "bg-red-600/10 text-red-600",
+          dot: "bg-red-600",
+          text: "Rejected",
+        };
+      case "NONE":
+      default:
+        return {
+          container: "bg-gray-200 text-black/70",
+          dot: "bg-black/70",
+          text: "None",
+        };
+    }
+  };
+
+  const { container, dot, text } = getStatusStyles(status);
+
+  return (
+    <div className="flex">
+      <p
+        className={`flex items-center gap-1 rounded-full ${container} px-3 py-[6px] text-[10px] font-semibold leading-none`}
+      >
+        <span
+          className={`aspect-square h-[5px] min-w-[5px] rounded-full ${dot}`}
+        />
+        {text}
+      </p>
+    </div>
+  );
+};
 
 const TextWithCopyIcon = ({
   text,
@@ -168,7 +232,7 @@ const TextWithCopyIcon = ({
       onMouseEnter={() => setShowCopyIcon(true)}
       onMouseLeave={() => setShowCopyIcon(false)}
     >
-      <p className="line-clamp-1 max-w-[200px] font-medium">
+      <p className="line-clamp-1 max-w-[200px] py-1 font-medium">
         {hideText ? convertPasswordToDots(text) : text}
       </p>
       <div className="w-[10px]">
