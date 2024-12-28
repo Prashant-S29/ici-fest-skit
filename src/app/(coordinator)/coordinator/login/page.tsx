@@ -29,12 +29,9 @@ import { toast } from "sonner";
 import { PageLoader } from "@/components/common/PageLoader";
 import { useMounted } from "@/hooks";
 import Link from "next/link";
+import { CoordinatorLoginSchema } from "@/schema/admin.schema";
 
 // Zod schema for form validation
-export const CoordinatorLoginSchema = z.object({
-  eventId: z.string().min(1, "Event ID is required"),
-  password: z.string().min(1, "Password is required"),
-});
 
 // Form data type inferred from Zod schema
 type AdminLoginFormValues = z.infer<typeof CoordinatorLoginSchema>;

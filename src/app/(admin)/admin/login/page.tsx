@@ -29,12 +29,8 @@ import { toast } from "sonner";
 import { PageLoader } from "@/components/common/PageLoader";
 import { useMounted } from "@/hooks";
 import Link from "next/link";
+import { AdminLoginSchema } from "@/schema/admin.schema";
 
-// Zod schema for form validation
-export const AdminLoginSchema = z.object({
-  adminId: z.string().min(1, "Admin ID is required"),
-  password: z.string().min(1, "Password is required"),
-});
 
 // Form data type inferred from Zod schema
 type AdminLoginFormValues = z.infer<typeof AdminLoginSchema>;
