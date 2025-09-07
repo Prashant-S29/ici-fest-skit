@@ -131,6 +131,7 @@ export const eventRouter = createTRPCRouter({
             // dashboard
             slug: input.slug,
             dbPassword: input.dbPassword,
+            coordinatorEmail: input.coordinatorEmail,
 
             // basic info
             title: input.title,
