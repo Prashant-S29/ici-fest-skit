@@ -35,6 +35,16 @@ export const CreateEventFormData: CreateEventFormConfig[] = [
         },
         fieldDataType: "password",
       },
+      {
+        fieldTitle: "Event Coordinator Email",
+        fieldDescription: "Email of the coordinator",
+        fieldName: "coordinatorEmail",
+        fieldPlaceholder: "Email",
+        fieldType: {
+          type: "input",
+        },
+        fieldDataType: "email",
+      },
     ],
   },
   // {

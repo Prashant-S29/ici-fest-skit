@@ -71,6 +71,9 @@ model EventRegistrationForm {
     // Relation with Event
     event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
     eventId String
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 // Event Coordinator
@@ -85,6 +88,9 @@ model EventCoordinator {
     // Relation with Event
     event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
     eventId String
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 // Event Schedule
@@ -100,6 +106,9 @@ model EventSchedule {
     // Relation with Event
     event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
     eventId String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 // Event
@@ -107,9 +116,10 @@ model Event {
     id String @id @default(uuid())
 
     // Dashboard
-    title      String
-    slug       String @unique
-    dbPassword String
+    title            String
+    slug             String @unique
+    coordinatorEmail String @unique
+    dbPassword       String
 
     category EventCategory @default(EVENT)
 
@@ -150,6 +160,9 @@ model Event {
 
     // update review request status
     reviewRequestStatus ReviewRequestStatus @default(NONE)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model CoordinatorManagedData {
@@ -174,6 +187,9 @@ model CoordinatorManagedData {
     materialsProvided String?
 
     event Event? @relation(fields: [eventSlug], references: [slug], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 enum Role {
@@ -191,6 +207,11 @@ model User {
     role          Role      @default(USER)
     accounts      Account[]
     sessions      Session[]
+
+    isActive Boolean @default(true)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model Admin {
@@ -198,6 +219,11 @@ model Admin {
 
     adminId  String @unique
     password String
+
+    isActive Boolean @default(true)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {

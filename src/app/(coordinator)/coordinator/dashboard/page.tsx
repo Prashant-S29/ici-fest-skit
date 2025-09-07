@@ -22,6 +22,7 @@ const CoordinatorDashboard: React.FC = () => {
 
   return (
     <>
+
       {data && data.user && data.user.id ? (
         <div className="min-h-screen w-full bg-[#f7f7f7]">
           <EventInfo eventId={data.user.id} />
@@ -29,6 +30,8 @@ const CoordinatorDashboard: React.FC = () => {
       ) : (
         <ResourceHandler status="notFound" />
       )}
+      {JSON.stringify(data)}
+
     </>
   );
 };

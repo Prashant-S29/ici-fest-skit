@@ -41,7 +41,7 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
 
   if (isLoading || isCoordinatorLoading) {
     return (
-      <div className="min-h-screen w-full bg-[#f7f7f7] px-[150px] py-[100px]">
+      <div className="min-h-screen w-full bg-[#f7f7f7] px-[250px] py-[100px]">
         <div className="loader h-6 w-[150px] rounded-sm" />
         <EventInfoLoader />
       </div>
@@ -87,7 +87,7 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#f7f7f7] px-[150px] py-[100px]">
+    <div className="min-h-screen w-full bg-[#f7f7f7] px-[250px] py-[100px]">
       {isLoading ? (
         <EventInfoLoader />
       ) : (

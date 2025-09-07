@@ -14,7 +14,7 @@ import type {
 } from "@/schema/event.schema";
 
 // Icons
-import { CopyIcon, MoreIconDots } from "@/icons";
+import { CopyIcon, MoreIconDots, EyeVisible } from "@/icons";
 
 // Hooks
 import { useCopyToClipboard } from "@/hooks";

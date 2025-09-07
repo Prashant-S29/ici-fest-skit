@@ -31,7 +31,7 @@ export const Timeline: React.FC = () => {
           ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3 px-[150px]">
+      <div className="mt-5 grid grid-cols-3 gap-3 px-[250px]">
         {TimelineData.map((data, index) => {
           const dayDifference = Math.floor(
             (Date.parse(data.eventDate) - Date.parse(FEST_START_DATE)) /

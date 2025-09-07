@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
 
 interface ImagePreviewProps {
   src: string;
@@ -50,7 +49,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           unoptimized
           width={600}
           height={800}
-          className={cn(className, "max-w-[700px]")}
+          className={cn(className, "w-fit h-[90%]")}
           // onLoad={() => URL.revokeObjectURL(src)}
         />
       </DialogContent>

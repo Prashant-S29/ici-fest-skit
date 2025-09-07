@@ -13,7 +13,7 @@ const About: React.FC = () => {
         <div className="h-1 w-[80%] rounded-full bg-primary" />
       </div>
 
-      <p className="mt-4 px-[150px] text-center text-base font-medium">
+      <p className="mt-4 px-[250px] text-center text-base font-medium">
         The ICI Fest has a special mission: To inspire young minds to show off
         their skills and go up against others by joining different technical,
         non technical events and workshops. Don&apos;t wait - register today to
@@ -46,7 +46,7 @@ const About: React.FC = () => {
         </h1>
         <div className="h-1 w-[80%] rounded-full bg-primary" />
       </div>
-      <p className="mt-4 px-[150px] text-center text-base font-medium">
+      <p className="mt-4 px-[250px] text-center text-base font-medium">
         Swami Keshvanand Institute of Technology, Management & Gramothan (SKIT)
         has established itself as a premier institution for engineering and
         technology education in Jaipur since its inception in 2000. In 2024 SKIT

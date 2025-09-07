@@ -20,7 +20,7 @@ export const Navbar: React.FC = () => {
   const { data: session, status } = useSession();
 
   return (
-    <header className="fixed top-0 z-20 flex w-full items-center justify-between border-b bg-white px-[150px] py-5">
+    <header className="fixed top-0 z-20 flex w-full items-center justify-between border-b bg-white px-[250px] py-5">
       <div className="flex gap-5">
         <p className="text-2xl font-bold">
           <span data-highlighted-text>ICI</span> Fest

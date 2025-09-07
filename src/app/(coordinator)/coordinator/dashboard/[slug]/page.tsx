@@ -29,7 +29,7 @@ const CoordinatorDashboard: React.FC = () => {
       ) : (
         <>
           {params.slug ? (
-            <EventInfo  eventId={params.slug} isAdmin />
+            <EventInfo eventId={params.slug} isAdmin />
           ) : (
             <ResourceHandler status="notFound" />
           )}

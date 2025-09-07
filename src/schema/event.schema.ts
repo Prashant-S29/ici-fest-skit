@@ -142,6 +142,7 @@ export const EventSchema = z.object({
   dbPassword: z
     .string()
     .min(6, "Database password must be at least 6 characters long."),
+  coordinatorEmail: z.string().email("Invalid email"),
 
   category: EventCategorySchema,
 
