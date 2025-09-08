@@ -127,6 +127,36 @@ export const eventRouter = createTRPCRouter({
       // return
 
       try {
+        // Check if event with slug already exists
+        const existingEventWithSlug = await ctx.db.event.findUnique({
+          where: {
+            slug: input.slug,
+          },
+        });
+
+        if (existingEventWithSlug) {
+          return {
+            data: null,
+            error: "SLUG_EXISTS",
+            message: "An event with this slug already exists",
+          };
+        }
+
+        // Check if event with coordinatorEmail already exists
+        const existingEventWithEmail = await ctx.db.event.findUnique({
+          where: {
+            coordinatorEmail: input.coordinatorEmail,
+          },
+        });
+
+        if (existingEventWithEmail) {
+          return {
+            data: null,
+            error: "COORDINATOR_EMAIL_EXISTS",
+            message: "An event with this coordinator email already exists",
+          };
+        }
+
         const event = await ctx.db.event.create({
           data: {
             // dashboard

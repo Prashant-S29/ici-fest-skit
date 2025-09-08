@@ -155,7 +155,11 @@ export const CreateEventForm: React.FC<Props> = ({ data, state }) => {
         return;
       }
 
-      await createEventMutation.mutateAsync(formData);
+      const createEventRes = await createEventMutation.mutateAsync(formData);
+      if (createEventRes.error) {
+        toast.error(createEventRes.message);
+        return;
+      }
       toast.success("Event created successfully");
 
       form.reset(EVENT_FORM_DEFAULTS);

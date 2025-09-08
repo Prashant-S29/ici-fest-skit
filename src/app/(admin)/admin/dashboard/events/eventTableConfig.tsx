@@ -50,7 +50,7 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
     header: "Coordinator Email",
     cell: ({ row }) => {
       const { coordinatorEmail } = row.original;
-      return <TextWithCopyIcon text={coordinatorEmail} hideText isEmail />;
+      return <TextWithCopyIcon text={coordinatorEmail}  />;
     },
   },
 
@@ -101,7 +101,7 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
 
   {
     accessorKey: "isHidden",
-    header: "Event Hidden Status",
+    header: "Hidden Status",
     cell: ({ row }) => {
       const { isHidden } = row.original;
       return <EventHiddenStatusPill isHidden={isHidden} />;
@@ -109,7 +109,7 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
   },
   {
     accessorKey: "reviewRequestStatus",
-    header: "Review Update Status",
+    header: "Review Status",
     cell: ({ row }) => {
       const { reviewRequestStatus } = row.original;
       return <ReviewUpdateStatusPill status={reviewRequestStatus} />;
@@ -258,7 +258,7 @@ const TextWithCopyIcon = ({ text, hideText, isEmail }: Props) => {
       onMouseEnter={() => setShowCopyIcon(true)}
       onMouseLeave={() => setShowCopyIcon(false)}
     >
-      <p className="line-clamp-1 max-w-[200px] py-1 font-medium">
+      <p className="line-clamp-1  py-1 font-medium">
         {displayText}
       </p>
       <div className="w-[10px]">

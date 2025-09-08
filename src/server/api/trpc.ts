@@ -132,7 +132,15 @@ export const protectedProcedure = t.procedure
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
 
+    // if(!ctx.session.user.coordinatorEmail){
+    //   throw new TRPCError({ code: "UNAUTHORIZED" });
+    // }
+
     if (ctx.session.user.role === "COORDINATOR") {
+      if (!ctx.session.user.coordinatorEmail) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
       const coordinatorEmail = await ctx.db.event.findUnique({
         where: {
           coordinatorEmail: ctx.session.user.coordinatorEmail,
