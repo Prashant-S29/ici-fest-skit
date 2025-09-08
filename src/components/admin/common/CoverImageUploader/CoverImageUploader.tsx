@@ -176,9 +176,6 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
   uploadedCoverImage,
   slug,
 }) => {
-  // const { images: uploadedCoverImage, setImages: setUploadedCoverImage } =
-  // useUploadedCoverImage();
-
   const { control, setValue } = useFormContext<
     z.infer<typeof CreateCoordinatorManagedData>,
     any,
@@ -230,7 +227,6 @@ export const CoverImageUploadField: React.FC<ImageUploadFieldProps> = ({
     url: string;
     setIsDeleted: React.Dispatch<React.SetStateAction<boolean>>;
   }) => {
-    console.log(uploadedCoverImage);
     setIsDeleting(true);
 
     const res = await deleteFilesMutation.mutateAsync({

@@ -11,12 +11,14 @@ declare module "next-auth" {
       id: string;
       role: Role;
       eventId?: string;
+      coordinatorEmail?: string;
     } & DefaultSession["user"];
   }
 
   interface User {
     id: string;
     role: Role;
+    coordinatorEmail?: string;
   }
 }
 
@@ -25,6 +27,7 @@ declare module "next-auth/jwt" {
     id: string;
     role: Role;
     eventId?: string;
+    coordinatorEmail?: string;
   }
 }
 

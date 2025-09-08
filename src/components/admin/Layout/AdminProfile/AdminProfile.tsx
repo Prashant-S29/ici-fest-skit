@@ -16,7 +16,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Session } from "next-auth";
+import { type Session } from "next-auth";
 
 interface Props {
   data: Session | null;

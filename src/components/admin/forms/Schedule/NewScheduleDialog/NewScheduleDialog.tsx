@@ -10,7 +10,7 @@ import { useMounted } from "@/hooks";
 // Schema
 import {
   CreateNewEventScheduleSchema,
-  PartialUpdateEventScheduleSchema,
+  type PartialUpdateEventScheduleSchema,
 } from "@/schema/event.schema";
 
 // Zod and RHF
@@ -161,10 +161,6 @@ export const NewScheduleDialog: React.FC<Props> = ({
     toast.error("Error in updating schedule");
     form.reset(SCHEDULE_FORM_DEFAULTS);
     setOpen(false);
-    // console.log(formData);
-    // console.log(form.getValues())
-    // console.log(startTime)
-    // console.log(endTime)
     
   };
 

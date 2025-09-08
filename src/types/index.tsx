@@ -1,11 +1,11 @@
 import {
-  CreateCoordinatorManagedData,
+  type CreateCoordinatorManagedData,
   // CreateEventInfoSchema,
-  CreateEventSchema,
+  type CreateEventSchema,
 } from "@/schema/event.schema";
-import { InputHTMLAttributes } from "react";
+import { type InputHTMLAttributes } from "react";
 import type { IconType } from "react-icons";
-import { z } from "zod";
+import { type z } from "zod";
 
 export type NavLinkDataType = {
   label: string;

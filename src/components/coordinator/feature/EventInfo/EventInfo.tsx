@@ -24,20 +24,47 @@ interface Props {
 }
 
 export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
-  const { data, isLoading, isFetched, refetch } =
-    api.event.getEventBySlug.useQuery({
+  const apiUtils = api.useUtils();
+
+  const { data, isLoading, error } = api.event.getEventBySlug.useQuery(
+    {
       slug: eventId,
-    });
+    },
+    {
+      retry: false,
+    },
+  );
 
   const [isRequestApproving, setIsRequestApproving] = useState(false);
   const [isRequestRejecting, setIsRequestRejecting] = useState(false);
 
-  const { data: coordinatorManagedData, isLoading: isCoordinatorLoading } =
-    api.event.getCoordinatorManagedDataById.useQuery({
+  // Check if the main query has an unauthorized error
+  const isUnauthorized = error?.data?.code === "UNAUTHORIZED";
+
+  const {
+    data: coordinatorManagedData,
+    isLoading: isCoordinatorLoading,
+    error: coordinatorError,
+  } = api.event.getCoordinatorManagedDataById.useQuery(
+    {
       slug: eventId,
-    });
+    },
+    {
+      enabled: !isUnauthorized,
+    },
+  );
 
   const updateEventMutation = api.event.updateEventInfoBySlug.useMutation();
+
+  // Show unauthorized error immediately if detected
+  if (isUnauthorized) {
+    return <ResourceHandler status="unauthorized" />;
+  }
+
+  // Also check coordinator data query for unauthorized error
+  if (coordinatorError?.data?.code === "UNAUTHORIZED") {
+    return <ResourceHandler status="unauthorized" />;
+  }
 
   if (isLoading || isCoordinatorLoading) {
     return (
@@ -55,35 +82,45 @@ export const EventInfo: React.FC<Props> = ({ eventId, isAdmin }) => {
   const handleApproveReviewRequest = async () => {
     setIsRequestApproving(true);
 
-    await updateEventMutation.mutateAsync({
-      slug: eventId,
-      reviewRequestStatus: "APPROVED",
-      brochure: coordinatorManagedData?.brochure || "",
-      coverImage: coordinatorManagedData?.coverImage || "",
-      images: coordinatorManagedData?.images,
-      judgementCriteria: coordinatorManagedData?.judgementCriteria || "",
-      disqualificationCriteria:
-        coordinatorManagedData?.disqualificationCriteria || "",
-      whatsappGroupURL: coordinatorManagedData?.whatsappGroupURL || "",
-      shortDescription: coordinatorManagedData?.shortDescription || "",
-      description: coordinatorManagedData?.description || "",
-      materialsProvided: coordinatorManagedData?.materialsProvided || "",
-    });
-    setIsRequestApproving(false);
+    try {
+      await updateEventMutation.mutateAsync({
+        slug: eventId,
+        reviewRequestStatus: "APPROVED",
+        brochure: coordinatorManagedData?.brochure || "",
+        coverImage: coordinatorManagedData?.coverImage || "",
+        images: coordinatorManagedData?.images,
+        judgementCriteria: coordinatorManagedData?.judgementCriteria || "",
+        disqualificationCriteria:
+          coordinatorManagedData?.disqualificationCriteria || "",
+        whatsappGroupURL: coordinatorManagedData?.whatsappGroupURL || "",
+        shortDescription: coordinatorManagedData?.shortDescription || "",
+        description: coordinatorManagedData?.description || "",
+        materialsProvided: coordinatorManagedData?.materialsProvided || "",
+      });
+      toast.success("Review Request Updated Successfully");
 
-    toast.success("Review Request Updated Successfully");
+      await apiUtils.event.getCoordinatorManagedDataById.invalidate();
+    } catch (error) {
+      console.error("Error in updating review request", error);
+    } finally {
+      setIsRequestApproving(false);
+    }
   };
 
   const handleRejectReviewRequest = async () => {
     setIsRequestRejecting(true);
 
-    await updateEventMutation.mutateAsync({
-      slug: eventId,
-      reviewRequestStatus: "REJECTED",
-    });
-
-    setIsRequestRejecting(false);
-    toast.success("Review Request Rejected Successfully");
+    try {
+      await updateEventMutation.mutateAsync({
+        slug: eventId,
+        reviewRequestStatus: "REJECTED",
+      });
+      toast.success("Review Request Rejected Successfully");
+    } catch (error) {
+      console.error("Error in rejecting review request", error);
+    } finally {
+      setIsRequestRejecting(false);
+    }
   };
 
   return (

@@ -14,7 +14,7 @@ import type {
 } from "@/schema/event.schema";
 
 // Icons
-import { CopyIcon, MoreIconDots, EyeVisible } from "@/icons";
+import { CopyIcon, MoreIconDots } from "@/icons";
 
 // Hooks
 import { useCopyToClipboard } from "@/hooks";
@@ -28,6 +28,7 @@ export interface tableConfigDataType {
   title: string;
   eventId: string;
   eventDbPassword: string;
+  coordinatorEmail: string;
   eventDbURL: string;
   isHidden: boolean;
   registrationStatus: z.infer<typeof RegistrationStatusSchema>;
@@ -41,6 +42,15 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
     cell: ({ row }) => {
       const { title } = row.original;
       return <p className="line-clamp-1 pr-[30px] font-medium">{title}</p>;
+    },
+  },
+
+  {
+    accessorKey: "coordinatorEmail",
+    header: "Coordinator Email",
+    cell: ({ row }) => {
+      const { coordinatorEmail } = row.original;
+      return <TextWithCopyIcon text={coordinatorEmail} hideText isEmail />;
     },
   },
 
@@ -216,15 +226,31 @@ export const ReviewUpdateStatusPill = ({
   );
 };
 
-const TextWithCopyIcon = ({
-  text,
-  hideText,
-}: {
+const maskEmail = (email: string): string => {
+  const [localPart, domain] = email.split("@");
+  if (!localPart || !domain) return email;
+
+  const visiblePart = localPart.slice(-4); // last 4 chars
+  const hiddenPart = "*".repeat(Math.max(localPart.length - 4, 0));
+
+  return `${hiddenPart}${visiblePart}@${domain}`;
+};
+
+type Props = {
   text: string;
   hideText?: boolean;
-}) => {
+  isEmail?: boolean;
+};
+
+const TextWithCopyIcon = ({ text, hideText, isEmail }: Props) => {
   const [showCopyIcon, setShowCopyIcon] = useState(false);
   const { copyToClipboard } = useCopyToClipboard();
+
+  const displayText = hideText
+    ? isEmail
+      ? maskEmail(text)
+      : convertPasswordToDots(text)
+    : text;
 
   return (
     <div
@@ -233,7 +259,7 @@ const TextWithCopyIcon = ({
       onMouseLeave={() => setShowCopyIcon(false)}
     >
       <p className="line-clamp-1 max-w-[200px] py-1 font-medium">
-        {hideText ? convertPasswordToDots(text) : text}
+        {displayText}
       </p>
       <div className="w-[10px]">
         {showCopyIcon && (
@@ -251,6 +277,7 @@ const TextWithCopyIcon = ({
     </div>
   );
 };
+
 const convertPasswordToDots = (password: string): string => {
   return "*".repeat(password.length);
 };

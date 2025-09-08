@@ -10,7 +10,7 @@ import { useMounted } from "@/hooks";
 // Schema
 import {
   CreateEventScheduleSchema,
-  PartialUpdateEventScheduleSchema,
+  type PartialUpdateEventScheduleSchema,
   type CreateEventSchema,
 } from "@/schema/event.schema";
 

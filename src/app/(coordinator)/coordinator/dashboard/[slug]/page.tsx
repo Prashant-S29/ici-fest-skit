@@ -22,6 +22,7 @@ const CoordinatorDashboard: React.FC = () => {
     return <PageLoader />;
   }
 
+
   return (
     <>
       {data && data.user && data.user.role !== "ADMIN" ? (
