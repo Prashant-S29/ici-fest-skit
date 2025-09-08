@@ -14,6 +14,7 @@ export const EVENT_FORM_DEFAULTS: z.infer<typeof CreateEventSchema> = {
   description: "",
   slug: "",
   dbPassword: "",
+  coordinatorEmail: "",
   coverImage: "",
   whatsappGroupURL: "",
   images: [],

@@ -1,48 +1,22 @@
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
 
 // Zod and RHF
 import type { z } from "zod";
-import { useForm, useFieldArray, type SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-// Hooks
-import { useMounted } from "@/hooks";
-// import { api } from "@/trpc/server";
-
 // Components
-import {
-  Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  Form,
-  Textarea,
-} from "@/components/ui";
+import { Button, Form } from "@/components/ui";
 
 import {
   CreateCoordinatorManagedData,
-  CreateEventScheduleSchema,
-  PartialUpdateEventScheduleSchema,
   type PartialUpdateCoordinatorManagedData,
 } from "@/schema/event.schema";
-import {
-  COORDINATOR_FORM_DEFAULTS,
-  COORDINATOR_MANAGED_FORM_DEFAULTS,
-} from "@/global/formDefaults";
+import { COORDINATOR_MANAGED_FORM_DEFAULTS } from "@/global/formDefaults";
 import { CreateEventInfoFormData } from "./data";
 import { EventInfoFieldProvider } from "@/components/admin/forms/EventInfoFieldProvider";
-import { ScheduleFormDialog } from "@/components/admin/forms/Event/ScheduleFormDialog";
-import { DeleteIcon } from "@/icons";
-import { convertMinsToTimeString } from "@/utils/timeHandler";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import { useCoverImageUploader, useImageUploader } from "@/global/hooks";
@@ -60,15 +34,16 @@ interface Props {
 }
 
 export const EventInfoForm: React.FC<Props> = ({ data, state, slug }) => {
+  const apiUtils = api.useUtils();
+
   const updateCoordinatorManagedDataMutation =
     api.event.updateCoordinatorManagedDataById.useMutation();
 
   const updateReviewRequestStatusMutation =
     api.event.updateReviewRequestStatus.useMutation();
 
-  const { images: coverImage, setImages: setCoverImage } =
-    useCoverImageUploader();
-  const { images: images, setImages: setImages } = useImageUploader();
+  const { images: coverImage } = useCoverImageUploader();
+  const { images: images } = useImageUploader();
 
   const form = useForm<CreateCoordinatorManagedDataType>({
     resolver: zodResolver(CreateCoordinatorManagedData),
@@ -106,21 +81,20 @@ export const EventInfoForm: React.FC<Props> = ({ data, state, slug }) => {
     });
 
     const data = await done();
-    form.setValue("coverImage", data[0]?.url || "");
+    form.setValue("coverImage", data[0]?.url ?? "");
 
-    const uploadedCoverImage = data[0]?.url || "";
+    const uploadedCoverImage = data[0]?.url ?? "";
     return uploadedCoverImage;
   };
 
   const onSubmit = async () => {
     const updatedData = form.getValues();
-    console.log(updatedData);
 
     try {
       const images = await handleImagesUpload();
       const coverImage = await handleCoverImagesUpload();
 
-      const res = await updateCoordinatorManagedDataMutation.mutateAsync({
+      await updateCoordinatorManagedDataMutation.mutateAsync({
         slug,
         ...updatedData,
         images: data?.images ? [...data.images, ...images] : images,
@@ -132,15 +106,12 @@ export const EventInfoForm: React.FC<Props> = ({ data, state, slug }) => {
         status: "PENDING",
       });
 
-      console.log(res);
-      toast.success("Event info updated successfully");
-      // form.reset(COORDINATOR_MANAGED_FORM_DEFAULTS);
-      // console.log(res);
-    } catch (error) {
-      console.log(error);
-      toast.error("Error updating event info");
+      await apiUtils.event.getCoordinatorManagedDataById.invalidate();
 
-      // form.reset(COORDINATOR_MANAGED_FORM_DEFAULTS);
+      toast.success("Event info updated successfully");
+    } catch (error) {
+      console.error("Error in updating event info", error);
+      toast.error("Error updating event info");
     }
     location.reload();
   };

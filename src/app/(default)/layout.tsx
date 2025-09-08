@@ -7,7 +7,6 @@ import type { Metadata } from "next";
 import { montserrat } from "@/fonts";
 
 // Components
-import { Footer, Navbar } from "../../components/layout";
 import { Providers } from "@/utils/Providers";
 import { auth } from "@/server/auth";
 
@@ -26,9 +25,9 @@ export default async function RootLayout({
     <html lang="en" className={`${montserrat.className}`}>
       <body>
         <Providers session={session}>
-          <Navbar />
+          {/* <Navbar /> */}
           {children}
-          <Footer />
+          {/* <Footer /> */}
         </Providers>
       </body>
     </html>

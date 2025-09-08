@@ -1,6 +1,6 @@
 "use client";
 
-import { z } from "zod";
+import { type z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -30,39 +30,73 @@ import { PageLoader } from "@/components/common/PageLoader";
 import { useMounted } from "@/hooks";
 import Link from "next/link";
 import { CoordinatorLoginSchema } from "@/schema/admin.schema";
-
-// Zod schema for form validation
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 // Form data type inferred from Zod schema
-type AdminLoginFormValues = z.infer<typeof CoordinatorLoginSchema>;
+type CoordinatorLoginFormValues = z.infer<typeof CoordinatorLoginSchema>;
 
 const Login: React.FC = () => {
   const { status } = useSession();
-
   const mounted = useMounted();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<AdminLoginFormValues>({
+  const form = useForm<CoordinatorLoginFormValues>({
     resolver: zodResolver(CoordinatorLoginSchema),
     defaultValues: {
+      coordinatorEmail: "",
       eventId: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: AdminLoginFormValues) => {
+  const onSubmit = async (data: CoordinatorLoginFormValues) => {
+    setIsLoading(true);
+
     try {
       const res = await signIn("credentials", {
+        coordinatorEmail: data.coordinatorEmail,
         eventId: data.eventId,
         password: data.password,
-        redirect: true,
+        redirect: false,
       });
 
-      if (res?.ok) {
+      if (res?.error) {
+        switch (res.error) {
+          case "CredentialsSignin":
+            try {
+              toast.error("Invalid email or password");
+            } catch (checkError: unknown) {
+              console.error(checkError);
+              toast.error("Account not found");
+            }
+            break;
+          case "Configuration":
+            toast.error("Server error, contact admin");
+            break;
+          case "AccessDenied":
+            toast.error("Access denied");
+            break;
+          case "Verification":
+            toast.error("Account verification failed");
+            break;
+          default:
+            toast.error("Server error, contact admin");
+        }
+      } else if (res?.ok) {
         toast.success("Login successful");
+        // redirect to coordinator dashboard
+        router.push("/coordinator/dashboard");
+      } else {
+        // Fallback error
+        toast.error("Login failed. Please try again.");
       }
     } catch (error) {
       console.error("Login failed", error);
-      alert("Invalid credentials"); // Replace with proper error handling
+      toast.error("Server error, contact admin");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,6 +126,26 @@ const Login: React.FC = () => {
                   <div className="flex flex-col gap-2">
                     <FormField
                       control={form.control}
+                      name="coordinatorEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Coordinator Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Coordinator Email"
+                              disabled={isLoading}
+                            />
+                          </FormControl>
+                          <FormMessage>
+                            {form.formState.errors.coordinatorEmail?.message}
+                          </FormMessage>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
                       name="eventId"
                       render={({ field }) => (
                         <FormItem>
@@ -100,7 +154,7 @@ const Login: React.FC = () => {
                             <Input
                               {...field}
                               placeholder="Event ID"
-                              disabled={form.formState.isSubmitting}
+                              disabled={isLoading}
                             />
                           </FormControl>
                           <FormMessage>
@@ -121,7 +175,7 @@ const Login: React.FC = () => {
                               {...field}
                               type="password"
                               placeholder="Password"
-                              disabled={form.formState.isSubmitting}
+                              disabled={isLoading}
                             />
                           </FormControl>
                           <FormMessage>
@@ -132,19 +186,19 @@ const Login: React.FC = () => {
                     />
 
                     <Button
-                      loading={form.formState.isSubmitting}
+                      loading={isLoading}
                       type="submit"
                       className="mt-2 w-full"
-                      disabled={form.formState.isSubmitting}
+                      disabled={isLoading}
                     >
                       Login
                     </Button>
 
                     <Button
-                      type="submit"
+                      type="button"
                       className="w-full text-black"
                       variant="link"
-                      disabled={form.formState.isSubmitting}
+                      disabled={isLoading}
                       asChild
                     >
                       <Link href="/">back to home</Link>

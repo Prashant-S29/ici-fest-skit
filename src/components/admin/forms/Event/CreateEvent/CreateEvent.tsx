@@ -109,37 +109,10 @@ export const CreateEventForm: React.FC<Props> = ({ data, state }) => {
     name: "coordinators",
   });
 
-  // handle file upload
-  // const handleImagesUpload = async () => {
-  //   if (images.length === 0) return;
-
-  //   const { done } = await createUpload("imageUploader", {
-  //     files: images,
-  //   });
-
-  //   const data = await done();
-  //   form.setValue(
-  //     "images",
-  //     data.map((file) => file.url),
-  //   );
-  // };
-
-  // const handleCoverImagesUpload = async () => {
-  //   if (coverImage.length === 0) return;
-
-  //   const { done } = await createUpload("imageUploader", {
-  //     files: coverImage,
-  //   });
-
-  //   const data = await done();
-  //   form.setValue("coverImage", data[0]?.url || "");
-  // };
-
   const handleFormSubmit: SubmitHandler<
     z.infer<typeof CreateEventSchema>
   > = async () => {
     const formData = { ...data, ...form.getValues() };
-    console.log("formData", formData);
 
     try {
       const isEventExists = await checkIfEventExists({
@@ -192,39 +165,6 @@ export const CreateEventForm: React.FC<Props> = ({ data, state }) => {
         description: JSON.stringify(error),
       });
     }
-
-    // try {
-    //   if (data) {
-    //     if (data.slug !== formData.slug) {
-    //       const isEventExists = await checkIfEventExists({
-    //         slug: formData.slug,
-    //       });
-    //       if (isEventExists) {
-    //         toast.error("Event with this id already exists");
-    //         return;
-    //       }
-    //     }
-    //     await updateEventMutation.mutateAsync(formData);
-    //     toast.success("Event updated successfully");
-    //   } else {
-    //     const isEventExists = await checkIfEventExists({ slug: formData.slug });
-    //     if (isEventExists) {
-    //       toast.error("Event with this id already exists");
-    //       return;
-    //     }
-    //     await createEventMutation.mutateAsync(formData);
-    //     toast.success("Event created successfully");
-    //     setShowEventWindow(true);
-    //   }
-
-    //   form.reset(EVENT_FORM_DEFAULTS);
-    //   router.back();
-    // } catch (error) {
-    //   console.log("error", error);
-    //   toast.error(`Error in ${data ? "updating" : "creating"} event`, {
-    //     description: JSON.stringify(error),
-    //   });
-    // }
   };
 
   const handleDeleteEvent = async () => {
@@ -242,7 +182,6 @@ export const CreateEventForm: React.FC<Props> = ({ data, state }) => {
   const handleFormUpdate = async () => {
     setIsFormUpdating(true);
     const formData = { ...EVENT_FORM_DEFAULTS, ...data, ...form.getValues() };
-    console.log("formData", formData);
 
     try {
       const isEventExists = await checkIfEventExists({

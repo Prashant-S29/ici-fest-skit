@@ -232,15 +232,12 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     setIsDeleting: React.Dispatch<React.SetStateAction<boolean>>;
     setIsDeleted: React.Dispatch<React.SetStateAction<boolean>>;
   }) => {
-    console.log(uploadedImages);
     setIsDeleting(true);
     setIsImageDeleting(true);
 
     const res = await deleteFilesMutation.mutateAsync({
       fileUrls: [url],
     });
-
-    console.log("response from uploadthing", res);
 
     if (res.success) {
       if (!uploadedImages) return;

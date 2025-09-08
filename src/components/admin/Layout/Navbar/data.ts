@@ -18,11 +18,11 @@ export const NavbarData: (NavLinkDataType & {
     href: "/admin/dashboard/schedule",
     isRestricted: true,
   },
-  {
-    label: "Core Team",
-    href: "/admin/dashboard/core-team",
-    isRestricted: true,
-  },
+  // {
+  //   label: "Core Team",
+  //   href: "/admin/dashboard/core-team",
+  //   isRestricted: true,
+  // },
 
   //   {
   //     label: "Dashboard",

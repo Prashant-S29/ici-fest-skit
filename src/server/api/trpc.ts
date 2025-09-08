@@ -122,7 +122,7 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
+  .use(async ({ ctx, next }) => {
     if (
       !ctx.session ||
       !ctx.session.user ||
@@ -131,6 +131,23 @@ export const protectedProcedure = t.procedure
     ) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
+
+    if (ctx.session.user.role === "COORDINATOR") {
+      const coordinatorEmail = await ctx.db.event.findUnique({
+        where: {
+          coordinatorEmail: ctx.session.user.coordinatorEmail,
+        },
+        select: {
+          coordinatorEmail: true,
+        },
+      });
+
+      if (!coordinatorEmail) {
+        console.error("You are not authorized to access this event");
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+    }
+
     return next({
       ctx: {
         // infers the `session` as non-nullable

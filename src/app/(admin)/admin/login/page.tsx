@@ -1,6 +1,6 @@
 "use client";
 
-import { z } from "zod";
+import type { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -30,15 +30,17 @@ import { PageLoader } from "@/components/common/PageLoader";
 import { useMounted } from "@/hooks";
 import Link from "next/link";
 import { AdminLoginSchema } from "@/schema/admin.schema";
-
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 // Form data type inferred from Zod schema
 type AdminLoginFormValues = z.infer<typeof AdminLoginSchema>;
 
 const Login: React.FC = () => {
   const { status } = useSession();
-
   const mounted = useMounted();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<AdminLoginFormValues>({
     resolver: zodResolver(AdminLoginSchema),
@@ -49,19 +51,47 @@ const Login: React.FC = () => {
   });
 
   const onSubmit = async (data: AdminLoginFormValues) => {
+    setIsLoading(true);
+
     try {
       const res = await signIn("credentials", {
         adminId: data.adminId,
         password: data.password,
-        redirect: true,
+        redirect: false,
       });
 
-      if (res?.ok) {
+      if (res?.error) {
+        // Handle different error scenarios
+        switch (res.error) {
+          case "CredentialsSignin":
+            // This is the generic error NextAuth returns when authorize() returns null
+            toast.error("Invalid Admin ID or password");
+            break;
+          case "Configuration":
+            toast.error("Server error, contact admin");
+            break;
+          case "AccessDenied":
+            toast.error("Access denied");
+            break;
+          case "Verification":
+            toast.error("Account verification failed");
+            break;
+          default:
+            toast.error("Server error, contact admin");
+        }
+      } else if (res?.ok) {
         toast.success("Login successful");
+        // redirect to admin dashboard
+        router.push("/admin/dashboard");
+      } else {
+        // Fallback error
+        toast.error("Login failed. Please try again.");
       }
     } catch (error) {
       console.error("Login failed", error);
-      alert("Invalid credentials"); // Replace with proper error handling
+      toast.error("Server error, contact admin");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,7 +129,7 @@ const Login: React.FC = () => {
                             <Input
                               {...field}
                               placeholder="Admin ID"
-                              disabled={form.formState.isSubmitting}
+                              disabled={isLoading}
                             />
                           </FormControl>
                           <FormMessage>
@@ -120,7 +150,7 @@ const Login: React.FC = () => {
                               {...field}
                               type="password"
                               placeholder="Password"
-                              disabled={form.formState.isSubmitting}
+                              disabled={isLoading}
                             />
                           </FormControl>
                           <FormMessage>
@@ -131,19 +161,19 @@ const Login: React.FC = () => {
                     />
 
                     <Button
-                      loading={form.formState.isSubmitting}
+                      loading={isLoading}
                       type="submit"
                       className="mt-2 w-full"
-                      disabled={form.formState.isSubmitting}
+                      disabled={isLoading}
                     >
                       Login
                     </Button>
 
                     <Button
-                      type="submit"
+                      type="button"
                       className="w-full text-black"
                       variant="link"
-                      disabled={form.formState.isSubmitting}
+                      disabled={isLoading}
                       asChild
                     >
                       <Link href="/">back to home</Link>

@@ -13,6 +13,7 @@ declare module "next-auth" {
       id: string;
       role: Role;
       eventId?: string;
+      coordinatorEmail?: string;
     } & DefaultSession["user"];
   }
 }
@@ -22,6 +23,7 @@ type Credential = {
   adminId?: string;
   password?: string;
   eventId?: string;
+  coordinatorEmail?: string;
 };
 
 export const authConfig: NextAuthConfig = {
@@ -42,63 +44,75 @@ export const authConfig: NextAuthConfig = {
         adminId: { label: "Admin ID", type: "text" },
         password: { label: "Password", type: "password" },
         eventId: { label: "Event ID", type: "text" },
+        coordinatorEmail: { label: "Coordinator Email", type: "text" },
       },
       async authorize(
         credentials: Partial<Record<keyof Credential, unknown>> | null,
       ) {
         if (!credentials) return null;
-        
+
         const adminId = credentials.adminId as string | undefined;
         const password = credentials.password as string | undefined;
         const eventId = credentials.eventId as string | undefined;
+        const coordinatorEmail = credentials.coordinatorEmail as
+          | string
+          | undefined;
 
-        // Handle admin login
-        if (adminId && password) {
-          const admin = await db.admin.findUnique({
-            where: { adminId },
-          });
+        try {
+          // Handle admin login
+          if (adminId && password) {
+            const admin = await db.admin.findUnique({
+              where: { adminId },
+            });
 
-          if (!admin) {
-            throw new Error("Invalid admin ID");
+            if (!admin) {
+              return null; // Will be handled as "Account not found" in frontend
+            }
+
+            // TODO: bcrypt the password
+            const isPasswordCorrect = password === admin.password;
+
+            if (!isPasswordCorrect) {
+              return null; // Will be handled as "Invalid Email or Password" in frontend
+            }
+
+            return {
+              id: admin.adminId,
+              role: Role.ADMIN,
+            };
           }
 
-          // TODO: bcrypt the password
-          const isPasswordCorrect = password === admin.password; // password === admin.password;
+          // Handle coordinator login
+          if (eventId && password && coordinatorEmail) {
+            const event = await db.event.findUnique({
+              where: { slug: eventId, coordinatorEmail },
+            });
 
-          if (!isPasswordCorrect) {
-            throw new Error("Invalid admin password");
+            if (!event) {
+              return null; // Will be handled as "Account not found" in frontend
+            }
+
+            // TODO: bcrypt the password
+            const isPasswordCorrect = password === event.dbPassword;
+
+            if (!isPasswordCorrect) {
+              return null; // Will be handled as "Invalid Email or Password" in frontend
+            }
+
+            return {
+              id: event.slug,
+              role: Role.COORDINATOR,
+              coordinatorEmail: event.coordinatorEmail,
+            };
           }
 
-          return {
-            id: admin.adminId,
-            role: Role.ADMIN,
-          };
+          // If no valid login credentials are provided
+          return null;
+        } catch (error) {
+          // Log the error for debugging but don't throw it
+          console.error("Authentication error:", error);
+          return null; // Will be handled as "Server error" in frontend
         }
-
-        // Handle coordinator login
-        if (eventId && password) {
-          const event = await db.event.findUnique({
-            where: { slug: eventId },
-          });
-
-          if (!event) {
-            throw new Error("Invalid event ID");
-          }
-          // TODO: bcrypt the password
-          const isPasswordCorrect = password === event.dbPassword;
-
-          if (!isPasswordCorrect) {
-            throw new Error("Invalid admin password");
-          }
-
-          return {
-            id: event.slug,
-            role: Role.COORDINATOR,
-          };
-        }
-
-        // If no valid login credentials are provided
-        return null;
       },
     }),
   ],
@@ -110,6 +124,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.eventId = token.eventId;
+        session.user.coordinatorEmail = token.coordinatorEmail;
       }
       return session;
     },
@@ -119,6 +134,7 @@ export const authConfig: NextAuthConfig = {
       if (user?.id) {
         token.id = user.id;
         token.role = user.role;
+        token.coordinatorEmail = user.coordinatorEmail;
       }
 
       return token;

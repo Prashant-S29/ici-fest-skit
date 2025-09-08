@@ -9,7 +9,6 @@ import React from "react";
 
 const CoordinatorDashboard: React.FC = () => {
   const { data, status } = useSession();
-
   const mounted = useMounted();
 
   if (!mounted) {
@@ -20,19 +19,14 @@ const CoordinatorDashboard: React.FC = () => {
     return <PageLoader />;
   }
 
+  if (status === "unauthenticated" || !data?.user?.id) {
+    return <ResourceHandler status="unauthorized" />;
+  }
+
   return (
-    <>
-
-      {data && data.user && data.user.id ? (
-        <div className="min-h-screen w-full bg-[#f7f7f7]">
-          <EventInfo eventId={data.user.id} />
-        </div>
-      ) : (
-        <ResourceHandler status="notFound" />
-      )}
-      {JSON.stringify(data)}
-
-    </>
+    <div className="min-h-screen w-full bg-[#f7f7f7]">
+      <EventInfo eventId={data.user.id} />
+    </div>
   );
 };
 

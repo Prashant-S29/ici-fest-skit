@@ -43,7 +43,7 @@ export const eventRouter = createTRPCRouter({
         eventDbURL: getEndpoint(`coordinator/dashboard/${data.slug}`),
         isHidden: data.isHidden,
         registrationStatus: data.registrationStatus,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        coordinatorEmail: data.coordinatorEmail,
         reviewRequestStatus: data.reviewRequestStatus,
       }));
 
@@ -99,6 +99,7 @@ export const eventRouter = createTRPCRouter({
         category: event.category,
         coverImage: event.coverImage ?? undefined,
         dbPassword: event.dbPassword,
+        coordinatorEmail: event.coordinatorEmail,
         description: event.description ?? undefined,
         shortDescription: event.shortDescription ?? undefined,
         durationInDays: event.durationInDays,
@@ -198,7 +199,6 @@ export const eventRouter = createTRPCRouter({
   updateEventById: adminProcedure
     .input(PartialUpdateEventSchema)
     .mutation(async ({ ctx, input }) => {
-      console.log("input", input);
       const { schedule, registrationForm, coordinators, id, ...rest } = input;
 
       return ctx.db.event.update({
@@ -238,7 +238,6 @@ export const eventRouter = createTRPCRouter({
   updateEventBySlug: adminProcedure
     .input(PartialUpdateEventSchema)
     .mutation(async ({ ctx, input }) => {
-      console.log("input", input);
       const { schedule, registrationForm, coordinators, id, ...rest } = input;
 
       return ctx.db.event.update({
@@ -279,7 +278,6 @@ export const eventRouter = createTRPCRouter({
   updateEventInfoBySlug: adminProcedure
     .input(PartialUpdateEventSchema)
     .mutation(async ({ ctx, input }) => {
-      console.log("input", input);
       return ctx.db.event.update({
         where: {
           slug: input.slug,
@@ -298,6 +296,7 @@ export const eventRouter = createTRPCRouter({
         },
       });
     }),
+
   // delete event by slug
   deleteEventBySlug: adminProcedure
     .input(z.object({ slug: z.string() }))
@@ -423,8 +422,6 @@ export const eventRouter = createTRPCRouter({
     .input(z.object({ slug: z.string(), coverImage: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { slug, coverImage } = input;
-      console.log("coverImage", coverImage);
-      console.log("slug", slug);
       return ctx.db.coordinatorManagedData.update({
         where: {
           eventSlug: slug,
