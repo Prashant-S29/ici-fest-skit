@@ -22,6 +22,8 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+
+    TESTING_SECRET: z.string(),
   },
 
   /**
@@ -48,6 +50,7 @@ export const env = createEnv({
     ADMIN_ID: process.env.ADMIN_ID,
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
     SUPER_ADMIN_PASS: process.env.SUPER_ADMIN_PASS,
+    TESTING_SECRET: process.env.TESTING_SECRET,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

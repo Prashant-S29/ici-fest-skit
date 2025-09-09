@@ -3,6 +3,8 @@ import { eventRouter } from "./routers/event";
 import { adminRouter } from "./routers/admin";
 import { scheduleRouter } from "./routers/schedule";
 import { fileRouter } from "./routers/files";
+import { publicEventRouter } from "./routers/public/event";
+import { publicScheduleRouter } from "./routers/public/schedule";
 
 /**
  * This is the primary router for your server.
@@ -14,6 +16,10 @@ export const appRouter = createTRPCRouter({
   event: eventRouter,
   schedule: scheduleRouter,
   file: fileRouter,
+
+  // public router
+  publicEvent: publicEventRouter,
+  publicSchedule: publicScheduleRouter,
 });
 
 // export type definition of API
