@@ -3,7 +3,7 @@ import { api } from "@/trpc/server";
 import { z } from "zod";
 
 // CORS configuration for public website
-const PUBLIC_ORIGINS = ["https://icifest.skit.ac.in", "http://localhost:3000"];
+const PUBLIC_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "").split(",");
 
 // CORS headers
 function setCORSHeaders(
@@ -14,7 +14,10 @@ function setCORSHeaders(
     response.headers.set("Access-Control-Allow-Origin", origin);
   }
   response.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type, TESTING_SECRET");
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, TESTING_SECRET",
+  );
   response.headers.set("Access-Control-Max-Age", "3600");
   return response;
 }
@@ -60,9 +63,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Additional localhost testing secret validation
-    if (origin === "http://localhost:3000") {
+    if (origin?.includes("http://localhost")) {
       const testingSecret = request.headers.get("TESTING_SECRET");
-      
+
       if (!testingSecret || testingSecret !== process.env.TESTING_SECRET) {
         const response = NextResponse.json(
           { error: "Unauthorized: Invalid or missing testing secret" },
