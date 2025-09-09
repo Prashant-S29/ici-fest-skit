@@ -14,18 +14,30 @@ function validateSecurityHeaders(request: NextRequest): boolean {
   const referer = request.headers.get("referer");
   const userAgent = request.headers.get("user-agent");
 
-  if (!origin || !ADMIN_ORIGINS.includes(origin)) {
-    return false;
+  console.log(origin)
+
+  if (!origin || origin?.startsWith("http://localhost")) {
+    console.log("local")
+    const superAdminPass = request.headers.get("super_admin_pass");
+    const testingSecret = request.headers.get("TESTING_SECRET");
+
+    console.log(superAdminPass, process.env.SUPER_ADMIN_PASS)
+    console.log(testingSecret, process.env.TESTING_SECRET)
+
+    return (
+      superAdminPass === process.env.SUPER_ADMIN_PASS &&
+      testingSecret === process.env.TESTING_SECRET
+    );
   }
 
-  if (
-    !referer ||
-    !ADMIN_ORIGINS.some((allowedOrigin) => referer.startsWith(allowedOrigin))
-  ) {
+  if (!origin || !ADMIN_ORIGINS.includes(origin)) return false;
+  if (referer && !ADMIN_ORIGINS.some((o) => referer.startsWith(o)))
     return false;
-  }
+  if (!userAgent || userAgent.length < 20) return false;
 
-  if (!userAgent || userAgent.length < 20) {
+  // Check super admin pass in prod too
+  const superAdminPass = request.headers.get("super_admin_pass");
+  if (!superAdminPass || superAdminPass !== process.env.SUPER_ADMIN_PASS) {
     return false;
   }
 
@@ -37,15 +49,6 @@ export async function POST(request: NextRequest) {
     if (!validateSecurityHeaders(request)) {
       return NextResponse.json(
         { error: "Forbidden: Invalid request source" },
-        { status: 403 },
-      );
-    }
-
-    // Check super admin pass
-    const superAdminPass = request.headers.get("x-super-admin-pass");
-    if (!superAdminPass || superAdminPass !== process.env.SUPER_ADMIN_PASS) {
-      return NextResponse.json(
-        { error: "Forbidden: Invalid credentials" },
         { status: 403 },
       );
     }
@@ -62,23 +65,19 @@ export async function POST(request: NextRequest) {
 
     if (!adminId || !password) {
       return NextResponse.json(
-        {
-          error: "Invalid request body",
-        },
+        { error: "Invalid request body" },
         { status: 400 },
       );
     }
 
     const data = await api.admin.addAdmin({
-      adminId: adminId,
-      password: password,
+      adminId,
+      password,
     });
 
     if (!data) {
       return NextResponse.json(
-        {
-          error: "Internal Server Error",
-        },
+        { error: "Internal Server Error" },
         { status: 500 },
       );
     }
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        data: data,
+        data,
         message: "Admin added successfully",
         error: null,
       },
@@ -97,18 +96,11 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: error.format(),
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: error.format() }, { status: 400 });
     }
     console.error("Error adding admin:", error);
     return NextResponse.json(
-      {
-        error: "Internal Server Error",
-      },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }
