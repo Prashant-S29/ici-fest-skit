@@ -39,6 +39,7 @@ export const publicEventRouter = createTRPCRouter({
               title: true,
               category: true,
               shortDescription: true,
+              registrationStatus: true,
               coverImage: true,
               durationInDays: true,
               registrationType: true,
