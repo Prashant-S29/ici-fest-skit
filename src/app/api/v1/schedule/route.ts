@@ -33,13 +33,16 @@ export async function OPTIONS(request: NextRequest) {
 const ScheduleQuerySchema = z.object({
   page: z
     .string()
-    .optional()
+    .nullable()
     .transform((val) => (val ? parseInt(val, 10) : 1)),
   limit: z
     .string()
-    .optional()
+    .nullable()
     .transform((val) => (val ? parseInt(val, 10) : 20)),
-  type: z.enum(["all", "datewise"]).optional().default("all"),
+  type: z
+    .enum(["all", "datewise"])
+    .nullable()
+    .transform((val) => val ?? "all"),
 });
 
 export async function GET(request: NextRequest) {
@@ -49,12 +52,7 @@ export async function GET(request: NextRequest) {
     // CORS validation
     if (origin && !PUBLIC_ORIGINS.includes(origin)) {
       const response = NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error: "CORS: Origin not allowed",
-          message: "CORS: Origin not allowed",
-        },
+        { error: "CORS: Origin not allowed" },
         { status: 403 },
       );
       return response;
@@ -66,12 +64,7 @@ export async function GET(request: NextRequest) {
 
       if (!testingSecret || testingSecret !== process.env.TESTING_SECRET) {
         const response = NextResponse.json(
-          {
-            success: false,
-            data: null,
-            error: "Unauthorized: Invalid or missing testing secret",
-            message: "Unauthorized: Invalid or missing testing secret",
-          },
+          { error: "Unauthorized: Invalid or missing testing secret" },
           { status: 401 },
         );
         return setCORSHeaders(response, origin);
@@ -91,10 +84,8 @@ export async function GET(request: NextRequest) {
     if (!validationResult.success) {
       const response = NextResponse.json(
         {
-          success: false,
-          data: null,
           error: "Invalid query parameters",
-          message: "Invalid query parameters",
+          details: validationResult.error.format(),
         },
         { status: 400 },
       );
@@ -106,12 +97,7 @@ export async function GET(request: NextRequest) {
     // Validate pagination limits
     if (page < 1 || page > 1000) {
       const response = NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error: "Page must be between 1 and 1000",
-          message: "Invalid page parameter",
-        },
+        { error: "Page must be between 1 and 1000" },
         { status: 400 },
       );
       return setCORSHeaders(response, origin);
@@ -119,29 +105,24 @@ export async function GET(request: NextRequest) {
 
     if (limit < 1 || limit > 50) {
       const response = NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error: "Limit must be between 1 and 50",
-          message: "Invalid limit parameter",
-        },
+        { error: "Limit must be between 1 and 50" },
         { status: 400 },
       );
       return setCORSHeaders(response, origin);
     }
 
-    let result;
+    let data;
 
     // Route based on query parameters
     if (type === "datewise") {
       // Get date-wise paginated schedules
-      result = await api.publicSchedule.getDateWisePaginatedSchedule({
+      data = await api.publicSchedule.getDateWisePaginatedSchedule({
         page,
         limit,
       });
     } else {
       // Get all paginated schedules
-      result = await api.publicSchedule.getAllPaginatedSchedule({
+      data = await api.publicSchedule.getAllPaginatedSchedule({
         page,
         limit,
       });
@@ -150,17 +131,11 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.json(
       {
         success: true,
-        data: result.data,
-        error: result.error,
-        message: result.message,
+        data,
         timestamp: new Date().toISOString(),
       },
       {
-        status: result.error
-          ? result.error.includes("not found")
-            ? 404
-            : 400
-          : 200,
+        status: 200,
         headers: {
           "Cache-Control": "public, max-age=300, s-maxage=600", // Cache for 5 minutes
         },

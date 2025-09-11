@@ -25,9 +25,17 @@ export const publicScheduleRouter = createTRPCRouter({
             skip,
             take: limit,
             where: {
-              event: {
-                isHidden: false,
-              },
+              OR: [
+                {
+                  eventId: { not: null },
+                  event: {
+                    isHidden: false,
+                  },
+                },
+                {
+                  eventId: null,
+                },
+              ],
             },
             select: {
               id: true,
@@ -48,9 +56,19 @@ export const publicScheduleRouter = createTRPCRouter({
           }),
           ctx.db.eventSchedule.count({
             where: {
-              event: {
-                isHidden: false,
-              },
+              OR: [
+                // Case 1: Schedule has an event relation and event is not hidden
+                {
+                  eventId: { not: null },
+                  event: {
+                    isHidden: false,
+                  },
+                },
+                // Case 2: Schedule has no event relation
+                {
+                  eventId: null,
+                },
+              ],
             },
           }),
         ]);
@@ -87,12 +105,20 @@ export const publicScheduleRouter = createTRPCRouter({
       try {
         const { page, limit } = input;
 
-        // First get all unique dates
+        // First get all unique dates with the same filtering logic
         const uniqueDates = await ctx.db.eventSchedule.findMany({
           where: {
-            event: {
-              isHidden: false,
-            },
+            OR: [
+              {
+                eventId: { not: null },
+                event: {
+                  isHidden: false,
+                },
+              },
+              {
+                eventId: null,
+              },
+            ],
           },
           select: {
             date: true,
@@ -112,9 +138,17 @@ export const publicScheduleRouter = createTRPCRouter({
           const schedules = await ctx.db.eventSchedule.findMany({
             where: {
               date,
-              event: {
-                isHidden: false,
-              },
+              OR: [
+                {
+                  eventId: { not: null },
+                  event: {
+                    isHidden: false,
+                  },
+                },
+                {
+                  eventId: null,
+                },
+              ],
             },
             select: {
               id: true,
