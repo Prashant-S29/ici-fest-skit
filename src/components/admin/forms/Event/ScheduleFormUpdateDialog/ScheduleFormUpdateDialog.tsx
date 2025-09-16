@@ -18,7 +18,7 @@ import { DeleteIcon, EditIcon } from "@/icons";
 // Components
 import { ScheduleFormDialog } from "../ScheduleFormDialog";
 import { Button } from "@/components/ui";
-import { convertMinsToTimeString } from "@/utils/timeHandler";
+import { convertMinsToTimeString, formatDate } from "@/utils/timeHandler";
 
 interface Props {
   updateIndex: number;
@@ -86,7 +86,8 @@ export const ScheduleFormUpdateDialog: React.FC<Props> = ({
         </div>
         <section className="mt-1">
           <p className="text-xs text-black/70">
-            {data.date} &#x2022; {convertMinsToTimeString(data.startTime)} -{" "}
+            {formatDate(data.date)} &#x2022;{" "}
+            {convertMinsToTimeString(data.startTime)} -{" "}
             {convertMinsToTimeString(data.endTime)}
           </p>
           <p className="text-xs text-black/70">{data.venue}</p>

@@ -6,7 +6,7 @@ import type { z } from "zod";
 import type { EventScheduleSchema } from "@/schema/event.schema";
 import { Button } from "@/components/ui";
 import { DeleteIcon, MoreIconDots } from "@/icons";
-import { convertMinsToTimeString } from "@/utils/timeHandler";
+import { convertMinsToTimeString, formatDate } from "@/utils/timeHandler";
 import { NewScheduleDialog } from "@/components/admin/forms/Schedule";
 
 export type tableConfigDataType = z.infer<typeof EventScheduleSchema>;
@@ -34,14 +34,7 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
     header: "Date",
     cell: ({ row }) => {
       const { date } = row.original;
-
-      const formattedDate = new Date(date).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "2-digit",
-      });
-
-      return <p>{formattedDate}</p>;
+      return <p>{formatDate(date)}</p>;
     },
   },
   {

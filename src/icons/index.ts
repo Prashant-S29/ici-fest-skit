@@ -19,6 +19,8 @@ import { IoRefresh as RefreshIcon } from "react-icons/io5";
 import { IoIosSearch as SearchIcon } from "react-icons/io";
 import { MdUnfoldMore as MoreIcon } from "react-icons/md";
 import { IoIosMore as MoreIconDots } from "react-icons/io";
+import {  ChevronsLeftIcon as LeftIcon } from "lucide-react";
+import { ChevronsRightIcon as RightIcon } from "lucide-react";
 
 
 const FooterIcons = {
@@ -45,5 +47,7 @@ export {
   RefreshIcon,
   SearchIcon,
   MoreIcon,
-  MoreIconDots
+  MoreIconDots,
+  LeftIcon,
+  RightIcon,
 };

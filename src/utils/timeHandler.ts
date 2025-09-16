@@ -132,3 +132,11 @@ export const convertDateTimeToMin = (date: Date): number => {
   // Convert hours to minutes and add the minutes
   return hours * 60 + minutes;
 };
+
+export const formatDate = (date: string) => {
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "2-digit",
+  });
+};
