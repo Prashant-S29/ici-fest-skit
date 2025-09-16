@@ -39,11 +39,12 @@ export const convertMinsToTimeString = (minutes: number): string => {
 
   const hours24 = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  const period = hours24 >= 12 ? "PM" : "AM";
-  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
 
-  // Format hours and minutes with leading zero if needed
-  const formattedHours = hours12.toString().padStart(2, "0");
+  const period = hours24 >= 12 ? "PM" : "AM";
+  let hours12 = hours24 % 12;
+  if (hours12 === 0) hours12 = 12; // fix midnight (0) and noon (12)
+
+  const formattedHours = hours12.toString(); // no leading zero for hours in 12-hr format
   const formattedMins = mins.toString().padStart(2, "0");
 
   return `${formattedHours}:${formattedMins} ${period}`;

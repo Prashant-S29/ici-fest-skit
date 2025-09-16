@@ -65,6 +65,15 @@ interface Props {
   ) => Promise<QueryObserverResult<unknown, unknown>>;
 }
 
+// Helper function to convert minutes to Date object for TimePicker
+const convertMinutesToTimeDate = (minutes: number): Date => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const date = new Date();
+  date.setHours(hours, mins, 0, 0);
+  return date;
+};
+
 export const NewScheduleDialog: React.FC<Props> = ({
   state,
   data,
@@ -78,12 +87,20 @@ export const NewScheduleDialog: React.FC<Props> = ({
 
   const [open, setOpen] = useState(false);
 
-  const [startTime, setStartTime] = useState<Date>(
-    data ? new Date(convertMinToDate(data.startTime || 0)) : new Date(),
-  );
-  const [endTime, setEndTime] = useState<Date>(
-    data ? new Date(convertMinToDate(data.endTime || 0)) : new Date(),
-  );
+  // Initialize time states with proper conversion
+  const [startTime, setStartTime] = useState<Date>(() => {
+    if (data && typeof data.startTime === "number") {
+      return convertMinutesToTimeDate(data.startTime);
+    }
+    return new Date();
+  });
+
+  const [endTime, setEndTime] = useState<Date>(() => {
+    if (data && typeof data.endTime === "number") {
+      return convertMinutesToTimeDate(data.endTime);
+    }
+    return new Date();
+  });
 
   const isMounted = useMounted();
 
@@ -102,16 +119,24 @@ export const NewScheduleDialog: React.FC<Props> = ({
   });
 
   useEffect(() => {
-    setStartTime(new Date());
-    setEndTime(new Date());
-
     if (!data) {
+      // Reset to current time when no data
+      const now = new Date();
+      setStartTime(now);
+      setEndTime(now);
       return;
     }
+
+    // Reset form with data
     form.reset(data);
 
-    setStartTime(new Date(convertMinToDate(data.startTime || 0)));
-    setEndTime(new Date(convertMinToDate(data.endTime || 0)));
+    // Set time states with proper conversion from minutes
+    if (typeof data.startTime === "number") {
+      setStartTime(convertMinutesToTimeDate(data.startTime));
+    }
+    if (typeof data.endTime === "number") {
+      setEndTime(convertMinutesToTimeDate(data.endTime));
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, open]);
@@ -161,7 +186,6 @@ export const NewScheduleDialog: React.FC<Props> = ({
     toast.error("Error in updating schedule");
     form.reset(SCHEDULE_FORM_DEFAULTS);
     setOpen(false);
-    
   };
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -225,9 +249,6 @@ export const NewScheduleDialog: React.FC<Props> = ({
                 : "Edit Schedule Form"}
           </DialogTitle>
           <DialogDescription className="leading-tight">
-            {/* Fill the below details for add a registration form */}
-            {/* This schedule will be displayed on the schedule page. */}
-            {/* <br /> */}
             {state === "DELETE" ? (
               <span>
                 <span className="font-semibold">
@@ -358,7 +379,7 @@ export const NewScheduleDialog: React.FC<Props> = ({
                     )}
                   />
 
-                  {/* Time */}
+                  {/* End Time */}
                   <FormField
                     control={form.control}
                     name="endTime"

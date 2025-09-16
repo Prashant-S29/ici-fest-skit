@@ -12,17 +12,34 @@ interface TimePickerDemoProps {
   showSeconds?: boolean;
 }
 
+// Helper function to determine period from date
+const getPeriodFromDate = (date: Date): Period => {
+  const hours = date.getHours();
+  return hours >= 12 ? "PM" : "AM";
+};
+
 export function TimePicker({
   date,
   setDate,
   showSeconds,
 }: TimePickerDemoProps) {
-  const [period, setPeriod] = React.useState<Period>("PM");
+  // Initialize period based on the date prop instead of hardcoding "PM"
+  const [period, setPeriod] = React.useState<Period>(() =>
+    getPeriodFromDate(date),
+  );
 
   const minuteRef = React.useRef<HTMLInputElement>(null);
   const hourRef = React.useRef<HTMLInputElement>(null);
   const secondRef = React.useRef<HTMLInputElement>(null);
   const periodRef = React.useRef<HTMLButtonElement>(null);
+
+  // Update period when date changes externally
+  React.useEffect(() => {
+    const newPeriod = getPeriodFromDate(date);
+    if (newPeriod !== period) {
+      setPeriod(newPeriod);
+    }
+  }, [date, period]);
 
   return (
     <div className="flex items-center gap-2">
