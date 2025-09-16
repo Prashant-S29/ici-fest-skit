@@ -21,10 +21,16 @@ export const scheduleRouter = createTRPCRouter({
   createSchedule: protectedProcedure
     .input(CreateEventScheduleSchema)
     .mutation(async ({ ctx, input }) => {
+      console.log("[Create Schedule Mutation] input", input);
+      console.log("[Create Schedule Mutation] input.date", input.date);
+
+      const convertedDate = convertDateTimeToDate(input.date);
+      console.log("[Create Schedule Mutation] convertedDate", convertedDate);
+
       return ctx.db.eventSchedule.create({
         data: {
           title: input.title,
-          date: convertDateTimeToDate(input.date),
+          date: convertedDate,
           startTime: input.startTime,
           endTime: input.endTime,
           venue: input.venue,

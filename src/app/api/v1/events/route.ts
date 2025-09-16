@@ -44,7 +44,7 @@ const PaginationQuerySchema = z.object({
     .nullable()
     .transform((val) => val ?? undefined),
   category: z
-    .enum(["EVENT", "WORKSHOP", "EXHIBITION"])
+    .enum(["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"])
     .nullable()
     .transform((val) => val ?? undefined),
 });

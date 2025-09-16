@@ -8,7 +8,7 @@ const PaginationSchema = z.object({
 });
 
 const EventByCategorySchema = z.object({
-  category: z.enum(["EVENT", "WORKSHOP", "EXHIBITION"]),
+  category: z.enum(["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"]),
   page: z.number().min(1).optional().default(1),
   limit: z.number().min(1).max(50).optional().default(20),
 });

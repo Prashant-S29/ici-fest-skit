@@ -27,9 +27,9 @@ export const BranchTypeSchema = z.enum(
   },
 );
 
-export const EventCategorySchema = z.enum(["EVENT", "WORKSHOP", "EXHIBITION"], {
+export const EventCategorySchema = z.enum(["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"], {
   errorMap: () => ({
-    message: "Event category must be 'EVENT', 'WORKSHOP', or 'EXHIBITION'.",
+    message: "Event category must be 'EVENT', 'WORKSHOP', 'EXHIBITION', or 'HACKATHON'.",
   }),
 });
 

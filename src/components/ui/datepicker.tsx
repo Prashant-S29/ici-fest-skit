@@ -19,13 +19,30 @@ interface Props {
 }
 
 export const DatePicker: React.FC<Props> = ({ value, onChange }) => {
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (!selectedDate || !onChange) return;
+
+    // Create a new date at local midnight to avoid timezone issues
+    const localDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+
+    onChange(localDate);
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant={"outline"}
           className={cn(
-            "w-[280px] justify-start text-left font-normal text-sm",
+            "w-[280px] justify-start text-left text-sm font-normal",
             !value && "text-muted-foreground",
           )}
         >
@@ -39,7 +56,7 @@ export const DatePicker: React.FC<Props> = ({ value, onChange }) => {
         <Calendar
           mode="single"
           selected={value}
-          onSelect={(date) => onChange?.(date ? date : new Date())}
+          onSelect={handleDateSelect}
           initialFocus
         />
       </PopoverContent>

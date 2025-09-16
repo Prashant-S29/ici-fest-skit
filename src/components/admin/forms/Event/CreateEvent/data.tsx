@@ -127,6 +127,11 @@ export const CreateEventFormData: CreateEventFormConfig[] = [
               label: "Exhibition",
               value: "EXHIBITION",
             },
+
+            {
+              label: "Hackathon",
+              value: "HACKATHON",
+            },
           ],
         },
         fieldDataType: "text",
