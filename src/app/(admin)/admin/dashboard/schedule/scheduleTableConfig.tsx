@@ -34,7 +34,14 @@ export const tableConfig: ColumnDef<tableConfigDataType>[] = [
     header: "Date",
     cell: ({ row }) => {
       const { date } = row.original;
-      return <p>{date}</p>;
+
+      const formattedDate = new Date(date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "2-digit",
+      });
+
+      return <p>{formattedDate}</p>;
     },
   },
   {
