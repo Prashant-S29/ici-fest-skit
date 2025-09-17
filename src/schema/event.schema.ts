@@ -27,11 +27,15 @@ export const BranchTypeSchema = z.enum(
   },
 );
 
-export const EventCategorySchema = z.enum(["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"], {
-  errorMap: () => ({
-    message: "Event category must be 'EVENT', 'WORKSHOP', 'EXHIBITION', or 'HACKATHON'.",
-  }),
-});
+export const EventCategorySchema = z.enum(
+  ["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"],
+  {
+    errorMap: () => ({
+      message:
+        "Event category must be 'EVENT', 'WORKSHOP', 'EXHIBITION', or 'HACKATHON'.",
+    }),
+  },
+);
 
 // Registration Status Schema
 export const RegistrationStatusSchema = z.enum(["UPCOMING", "OPEN", "CLOSED"], {
@@ -108,12 +112,12 @@ export const CoordinatorManagedData = z.object({
   // about
   shortDescription: z
     .string()
-    .min(50, "At least 50 words are required.")
-    .max(200, "Maximum 200 words are allowed."),
+    .min(1, "At least 1 words are required.")
+    .max(600, "Maximum 600 words are allowed."),
   description: z
     .string()
-    .min(100, "At least 100 words are required.")
-    .max(400, "Maximum 200 words are allowed."),
+    .min(1, "At least 1 words are required.")
+    .max(600, "Maximum 600 words are allowed."),
 
   // assets
   whatsappGroupURL: z.string().url("WhatsApp group URL must be a valid URL."),

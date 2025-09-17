@@ -123,6 +123,7 @@ model Event {
     description      String?
 
     brochure         String?
+    problemStatement String?
     coverImage       String?
     images           String[]
     whatsappGroupURL String?
@@ -173,6 +174,7 @@ model CoordinatorManagedData {
 
     whatsappGroupURL String
     brochure         String
+    problemStatement String?
     coverImage       String
     images           String[]
 
