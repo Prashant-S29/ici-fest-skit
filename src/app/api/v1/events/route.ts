@@ -47,6 +47,15 @@ const PaginationQuerySchema = z.object({
     .enum(["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"])
     .nullable()
     .transform((val) => val ?? undefined),
+  // New: Add ordering options
+  orderBy: z
+    .enum(["sequence", "createdAt", "title"])
+    .nullable()
+    .transform((val) => val ?? "sequence"), // Default to sequence ordering
+  orderDirection: z
+    .enum(["asc", "desc"])
+    .nullable()
+    .transform((val) => val ?? "asc"), // Default to ascending for sequence
 });
 
 export async function GET(request: NextRequest) {
@@ -82,6 +91,8 @@ export async function GET(request: NextRequest) {
       limit: searchParams.get("limit"),
       slug: searchParams.get("slug"),
       category: searchParams.get("category"),
+      orderBy: searchParams.get("orderBy"),
+      orderDirection: searchParams.get("orderDirection"),
     };
 
     const validationResult = PaginationQuerySchema.safeParse(rawQuery);
@@ -97,7 +108,8 @@ export async function GET(request: NextRequest) {
       return setCORSHeaders(response, origin);
     }
 
-    const { page, limit, slug, category } = validationResult.data;
+    const { page, limit, slug, category, orderBy, orderDirection } =
+      validationResult.data;
 
     // Validate pagination limits
     if (page < 1 || page > 1000) {
@@ -131,7 +143,7 @@ export async function GET(request: NextRequest) {
 
       data = await api.publicEvent.getEventBySlug({ slug });
     } else if (category) {
-      // Get events by category
+      // Get events by category with ordering
       if (category.length > 100 || !/^[a-zA-Z0-9_-\s]+$/.test(category)) {
         const response = NextResponse.json(
           { error: "Invalid category format" },
@@ -144,12 +156,16 @@ export async function GET(request: NextRequest) {
         category,
         page,
         limit,
+        orderBy,
+        orderDirection,
       });
     } else {
-      // Get all paginated events
+      // Get all paginated events with ordering
       data = await api.publicEvent.getAllPaginatedEvents({
         page,
         limit,
+        orderBy,
+        orderDirection,
       });
     }
 

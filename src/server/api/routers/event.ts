@@ -10,7 +10,12 @@ import {
   PartialUpdateCoordinatorManagedData,
   PartialUpdateEventSchema,
 } from "@/schema/event.schema";
-import type { Event } from "@prisma/client";
+import type {
+  Event,
+  EventCategory,
+  RegistrationStatus,
+  ReviewRequestStatus,
+} from "@prisma/client";
 import { z } from "zod";
 import type { tableConfigDataType } from "@/app/(admin)/admin/dashboard/events/eventTableConfig";
 import { getEndpoint } from "@/utils/getEndpoint";
@@ -21,6 +26,17 @@ export type GetAllEventsResponse = {
   data: Event[] | null;
   formattedData: tableConfigDataType[] | null;
 };
+
+const ReorderEventsSchema = z.object({
+  eventIds: z
+    .array(z.string().min(1, "Event ID is required"))
+    .min(1, "At least one event ID is required"),
+  category: z.enum(["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"]),
+});
+
+const GetEventsByCategorySchema = z.object({
+  category: z.enum(["EVENT", "WORKSHOP", "EXHIBITION", "HACKATHON"]),
+});
 
 export const eventRouter = createTRPCRouter({
   // get all events
@@ -58,6 +74,164 @@ export const eventRouter = createTRPCRouter({
           };
     },
   ),
+  getEventsByCategory: adminProcedure
+    .input(GetEventsByCategorySchema)
+    .query(async ({ ctx, input }) => {
+      const events = await ctx.db.event.findMany({
+        where: {
+          category: input.category,
+        },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          category: true,
+          sequence: true,
+          coordinatorEmail: true,
+          dbPassword: true,
+          isHidden: true,
+          registrationStatus: true,
+          reviewRequestStatus: true,
+          createdAt: true,
+        },
+        orderBy: [{ sequence: "asc" }, { createdAt: "desc" }],
+      });
+
+      // Format the data for the admin table
+      const formattedData: tableConfigDataType[] = events.map((data) => ({
+        id: data.id,
+        title: data.title,
+        eventId: data.slug,
+        eventDbPassword: data.dbPassword,
+        eventDbURL: getEndpoint(`coordinator/dashboard/${data.slug}`),
+        isHidden: data.isHidden,
+        registrationStatus: data.registrationStatus,
+        coordinatorEmail: data.coordinatorEmail,
+        reviewRequestStatus: data.reviewRequestStatus,
+      }));
+
+      return {
+        events,
+        formattedData,
+      };
+    }),
+
+  // Reorder events within a category
+  reorderEvents: adminProcedure
+    .input(ReorderEventsSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Validate that all events belong to the specified category
+        const events = await ctx.db.event.findMany({
+          where: {
+            id: { in: input.eventIds },
+            category: input.category,
+          },
+          select: { id: true },
+        });
+
+        if (events.length !== input.eventIds.length) {
+          return {
+            success: false,
+            error: "INVALID_EVENTS",
+            message:
+              "Some events not found or do not belong to the specified category",
+          };
+        }
+
+        // Use transaction to ensure data consistency
+        await ctx.db.$transaction(async (tx) => {
+          // Update sequence for each event
+          for (let i = 0; i < input.eventIds.length; i++) {
+            await tx.event.update({
+              where: { id: input.eventIds[i] },
+              data: { sequence: i + 1 },
+            });
+          }
+        });
+
+        return {
+          success: true,
+          message: "Events reordered successfully",
+        };
+      } catch (error) {
+        console.error("Reorder error:", error);
+        return {
+          success: false,
+          error: "DATABASE_ERROR",
+          message: "Failed to reorder events",
+        };
+      }
+    }),
+
+  // Get all events grouped by category (for initial load of admin panel)
+  getAllEventsGroupedByCategory: adminProcedure.query(async ({ ctx }) => {
+    const categories = [
+      "EVENT",
+      "WORKSHOP",
+      "EXHIBITION",
+      "HACKATHON",
+    ] as const;
+
+    const result: Record<
+      string,
+      {
+        events: {
+          category: EventCategory;
+          id: string;
+          slug: string;
+          title: string;
+          dbPassword: string;
+          coordinatorEmail: string;
+          reviewRequestStatus: ReviewRequestStatus;
+          registrationStatus: RegistrationStatus;
+          isHidden: boolean;
+          sequence: number;
+          createdAt: Date;
+        }[];
+        formattedData: tableConfigDataType[];
+      }
+    > = {};
+
+    for (const category of categories) {
+      const events = await ctx.db.event.findMany({
+        where: { category },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          category: true,
+          sequence: true,
+          coordinatorEmail: true,
+          dbPassword: true,
+          isHidden: true,
+          registrationStatus: true,
+          reviewRequestStatus: true,
+          createdAt: true,
+        },
+        orderBy: [{ sequence: "asc" }, { createdAt: "desc" }],
+      });
+
+      const formattedData: tableConfigDataType[] = events.map((data) => ({
+        id: data.id,
+        title: data.title,
+        eventId: data.slug,
+        eventDbPassword: data.dbPassword,
+        eventDbURL: getEndpoint(`coordinator/dashboard/${data.slug}`),
+        isHidden: data.isHidden,
+        registrationStatus: data.registrationStatus,
+        coordinatorEmail: data.coordinatorEmail,
+        reviewRequestStatus: data.reviewRequestStatus,
+      }));
+
+      result[category] = {
+        events,
+        formattedData,
+      };
+    }
+
+    return result;
+  }),
 
   // get event by id
   getEventById: protectedProcedure
