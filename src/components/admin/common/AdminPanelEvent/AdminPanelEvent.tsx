@@ -34,6 +34,7 @@ import { api } from "@/trpc/react";
 import Link from "next/link";
 import { useCopyToClipboard } from "@/hooks";
 import type { tableConfigDataType } from "@/app/(admin)/admin/dashboard/events/eventTableConfig";
+import { RefreshIcon } from "@/icons";
 
 const categories = [
   { value: "EVENT", label: "Events" },
@@ -324,18 +325,27 @@ const AdminEventsPanel: React.FC = () => {
   return (
     <div className="">
       <div className="mb-6 flex items-center justify-between">
-        {/* <h1 className="text-2xl font-bold">Event Management</h1> */}
         <p className="text-xl font-semibold">All Events</p>
-        <Button
-          onClick={() => void handleRefreshAll()}
-          disabled={isLoading || isRefetchingAll}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw
-            className={`h-4 w-4 ${isLoading || isRefetchingAll ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
+
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-dashed font-medium"
+            onClick={() => void handleRefreshAll()}
+            disabled={isLoading || isRefetchingAll}
+          >
+            <RefreshIcon />
+            Refresh
+          </Button>
+          <Button
+            size="sm"
+            className="border-none font-semibold shadow-none"
+            asChild
+          >
+            <Link href="/admin/dashboard/events/new">Add New Event</Link>
+          </Button>
+        </div>
       </div>
 
       <Tabs

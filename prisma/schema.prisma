@@ -8,14 +8,12 @@ datasource db {
     directUrl = env("DIRECT_URL")
 }
 
-// Registration Type
 enum RegistrationType {
     TEAM
     INDIVIDUAL
     BOTH
 }
 
-// Event Category
 enum EventCategory {
     EVENT
     WORKSHOP
@@ -23,7 +21,6 @@ enum EventCategory {
     HACKATHON
 }
 
-// Branch
 enum Branch {
     CSE
     CSE_AI
@@ -36,7 +33,6 @@ enum Branch {
     ME
 }
 
-// Registration Status
 enum RegistrationStatus {
     UPCOMING
     OPEN
@@ -50,7 +46,6 @@ enum ReviewRequestStatus {
     REJECTED
 }
 
-// Event Registration Form
 model EventRegistrationForm {
     id String @id @default(uuid())
 
@@ -58,19 +53,20 @@ model EventRegistrationForm {
     formURL    String
     formAmount Int
 
-    // Metadata
     isActive Boolean @default(true)
     status   Int     @default(0)
 
-    // Relation with Event
     event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
     eventId String
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([eventId])
+    @@index([isActive, eventId])
+    @@index([status, eventId])
 }
 
-// Event Coordinator
 model EventCoordinator {
     id String @id @default(uuid())
 
@@ -79,15 +75,17 @@ model EventCoordinator {
     branch Branch
     year   Int
 
-    // Relation with Event
     event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
     eventId String
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([eventId])
+    @@index([branch, year])
+    @@index([mobile])
 }
 
-// Event Schedule
 model EventSchedule {
     id String @id @default(uuid())
 
@@ -97,19 +95,21 @@ model EventSchedule {
     endTime   Int
     venue     String
 
-    // Relation with Event
     event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
     eventId String?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([eventId])
+    @@index([date, startTime])
+    @@index([venue])
+    @@index([date, eventId])
 }
 
-// Event
 model Event {
     id String @id @default(uuid())
 
-    // Dashboard
     title            String
     slug             String @unique
     coordinatorEmail String @unique
@@ -119,75 +119,75 @@ model Event {
 
     sequence Int @default(0)
 
-    // about
     shortDescription String?
     description      String?
 
-    // assets
     brochure         String?
     coverImage       String?
     images           String[]
     whatsappGroupURL String?
 
-    // rules
     judgementCriteria        String?
     disqualificationCriteria String?
 
-    // resources
     materialsProvided String?
 
-    // Schedule
     schedule EventSchedule[]
 
-    // Registration
     durationInDays   Int
     registrationType RegistrationType
     registrationForm EventRegistrationForm[]
 
-    // Coordinators
     coordinators EventCoordinator[]
 
-    // Controllers Config
     registrationStatus RegistrationStatus
     isHidden           Boolean            @default(false)
 
-    // coordinator managed data
     coordinatorManagedData CoordinatorManagedData?
 
-    // update review request status
     reviewRequestStatus ReviewRequestStatus @default(NONE)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@index([category, sequence])
+    @@index([category, sequence, createdAt])
+    @@index([slug])
+    @@index([coordinatorEmail])
+    @@index([category, isHidden])
+    @@index([registrationStatus, category])
+    @@index([reviewRequestStatus, category])
+    @@index([isHidden, registrationStatus])
+    @@index([category, registrationStatus, isHidden])
+    @@index([createdAt])
+    @@index([sequence])
+    @@index([registrationType, category])
+    @@index([durationInDays])
 }
 
 model CoordinatorManagedData {
     id        String @id @default(uuid())
     eventSlug String @unique
 
-    // about
     shortDescription String
     description      String
 
-    // assets
     whatsappGroupURL String
     brochure         String
     coverImage       String
     images           String[]
 
-    // rules
     judgementCriteria        String?
     disqualificationCriteria String?
 
-    // resources
     materialsProvided String?
 
     event Event? @relation(fields: [eventSlug], references: [slug], onDelete: Cascade)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([eventSlug])
+    @@index([createdAt])
 }
 
 enum Role {
@@ -210,6 +210,12 @@ model User {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([email])
+    @@index([role, isActive])
+    @@index([isActive])
+    @@index([createdAt])
+    @@index([emailVerified])
 }
 
 model Admin {
@@ -222,6 +228,10 @@ model Admin {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([adminId])
+    @@index([isActive])
+    @@index([createdAt])
 }
 
 model VerificationToken {
@@ -230,9 +240,10 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+    @@index([expires])
+    @@index([identifier])
 }
 
-// Necessary for Next auth
 model Account {
     id                       String  @id @default(uuid())
     userId                   String
@@ -250,6 +261,10 @@ model Account {
     refresh_token_expires_in Int?
 
     @@unique([provider, providerAccountId])
+    @@index([userId])
+    @@index([provider, providerAccountId])
+    @@index([provider])
+    @@index([expires_at])
 }
 
 model Session {
@@ -258,4 +273,9 @@ model Session {
     userId       String
     expires      DateTime
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([sessionToken])
+    @@index([userId])
+    @@index([expires])
+    @@index([userId, expires])
 }

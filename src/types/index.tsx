@@ -101,3 +101,6 @@ export type CreateEventInfoFormConfig = {
   isOptional?: boolean;
   fields: CreateCoordinatorManageFormFieldConfigProps[];
 };
+
+
+export type LogConfig = "detailed" | "normal" | "errors-only";

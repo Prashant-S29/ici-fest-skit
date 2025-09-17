@@ -24,6 +24,13 @@ export const env = createEnv({
       .default("development"),
 
     TESTING_SECRET: z.string(),
+
+    PERFORMANCE_LOG_LEVEL: z
+      .enum(["detailed", "normal", "errors-only"])
+      .default("detailed"),
+    PERFORMANCE_SLOW_THRESHOLD: z.string().default("1000"),
+    PERFORMANCE_CRITICAL_THRESHOLD: z.string().default("5000"),
+    PERFORMANCE_MEMORY_ALERT_MB: z.string().default("500"),
   },
 
   /**
@@ -51,6 +58,10 @@ export const env = createEnv({
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
     SUPER_ADMIN_PASS: process.env.SUPER_ADMIN_PASS,
     TESTING_SECRET: process.env.TESTING_SECRET,
+    PERFORMANCE_LOG_LEVEL: process.env.PERFORMANCE_LOG_LEVEL,
+    PERFORMANCE_SLOW_THRESHOLD: process.env.PERFORMANCE_SLOW_THRESHOLD,
+    PERFORMANCE_CRITICAL_THRESHOLD: process.env.PERFORMANCE_CRITICAL_THRESHOLD,
+    PERFORMANCE_MEMORY_ALERT_MB: process.env.PERFORMANCE_MEMORY_ALERT_MB,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
