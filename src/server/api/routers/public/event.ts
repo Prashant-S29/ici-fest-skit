@@ -1,5 +1,3 @@
-// Update your tRPC publicEvent procedures
-
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import type { Prisma } from "@prisma/client";
@@ -32,6 +30,7 @@ export const publicEventRouter = createTRPCRouter({
       } else {
         orderByClause = { title: orderDirection };
       }
+      const queryTimestamp = new Date();
 
       const [events, totalItems] = await Promise.all([
         ctx.db.event.findMany({
@@ -39,6 +38,9 @@ export const publicEventRouter = createTRPCRouter({
             isHidden: false,
             registrationStatus: {
               in: ["UPCOMING", "OPEN"], // Only show upcoming and open events
+            },
+            createdAt: {
+              lte: queryTimestamp,
             },
           },
           select: {
@@ -63,6 +65,9 @@ export const publicEventRouter = createTRPCRouter({
             isHidden: false,
             registrationStatus: {
               in: ["UPCOMING", "OPEN"],
+            },
+            createdAt: {
+              lte: queryTimestamp,
             },
           },
         }),
@@ -109,6 +114,9 @@ export const publicEventRouter = createTRPCRouter({
         orderByClause = { title: orderDirection };
       }
 
+      // Add timestamp to ensure fresh queries
+      const queryTimestamp = new Date();
+
       const [events, totalItems] = await Promise.all([
         ctx.db.event.findMany({
           where: {
@@ -116,6 +124,9 @@ export const publicEventRouter = createTRPCRouter({
             isHidden: false,
             registrationStatus: {
               in: ["UPCOMING", "OPEN"],
+            },
+            createdAt: {
+              lte: queryTimestamp,
             },
           },
           select: {
@@ -142,6 +153,9 @@ export const publicEventRouter = createTRPCRouter({
             registrationStatus: {
               in: ["UPCOMING", "OPEN"],
             },
+            createdAt: {
+              lte: queryTimestamp,
+            },
           },
         }),
       ]);
@@ -159,7 +173,6 @@ export const publicEventRouter = createTRPCRouter({
       };
     }),
 
-  // Get event by slug (unchanged but including sequence in select)
   getEventBySlug: publicProcedure
     .input(
       z.object({

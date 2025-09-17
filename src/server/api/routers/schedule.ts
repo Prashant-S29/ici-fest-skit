@@ -30,7 +30,7 @@ export const scheduleRouter = createTRPCRouter({
       return ctx.db.eventSchedule.create({
         data: {
           title: input.title,
-          date: convertedDate,
+          date: input.date,
           startTime: input.startTime,
           endTime: input.endTime,
           venue: input.venue,

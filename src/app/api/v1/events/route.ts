@@ -5,7 +5,7 @@ import { z } from "zod";
 // CORS configuration for public website
 const PUBLIC_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "").split(",");
 
-// CORS headers
+// CORS headers with no-cache directives
 function setCORSHeaders(
   response: NextResponse,
   origin: string | null,
@@ -19,6 +19,16 @@ function setCORSHeaders(
     "Content-Type, TESTING_SECRET",
   );
   response.headers.set("Access-Control-Max-Age", "3600");
+
+  // Add no-cache headers to CORS response
+  response.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  response.headers.set("Surrogate-Control", "no-store");
+
   return response;
 }
 
@@ -178,7 +188,13 @@ export async function GET(request: NextRequest) {
       {
         status: 200,
         headers: {
-          "Cache-Control": "public, max-age=300, s-maxage=600", // Cache for 5 minutes
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+          "Surrogate-Control": "no-store",
+          ETag: `"${Date.now()}"`,
+          Vary: "Accept-Encoding, Authorization",
         },
       },
     );
@@ -195,7 +211,16 @@ export async function GET(request: NextRequest) {
         message: "An unexpected error occurred",
         timestamp: new Date().toISOString(),
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: {
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+          "Surrogate-Control": "no-store",
+        },
+      },
     );
 
     return setCORSHeaders(response, origin);

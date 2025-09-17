@@ -401,6 +401,23 @@ export const adminProcedure = baseProcedure.use(adminProcedureMiddleware);
 // Standalone monitored procedure (for backward compatibility)
 export const monitoredProcedure = baseProcedure;
 
+// const noCachePublicProcedure = publicProcedure.use(async ({ ctx, next }) => {
+//   // Set no-cache headers specifically for public event procedures
+//   if (ctx.) {
+//     ctx.res.setHeader(
+//       "Cache-Control",
+//       "no-store, no-cache, must-revalidate, proxy-revalidate",
+//     );
+//     ctx.res.setHeader("Pragma", "no-cache");
+//     ctx.res.setHeader("Expires", "0");
+//     ctx.res.setHeader("Surrogate-Control", "no-store");
+//     ctx.res.setHeader("ETag", `"${Date.now()}"`);
+//     ctx.res.setHeader("Vary", "Accept-Encoding, Authorization");
+//   }
+
+//   return next();
+// });
+
 /**
  * Export performance metrics for monitoring dashboard
  */

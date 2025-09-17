@@ -40,7 +40,6 @@ import {
   FormMessage,
   Button,
   Input,
-  DatePicker,
   TimePicker,
 } from "@/components/ui";
 
@@ -72,6 +71,70 @@ const convertMinutesToTimeDate = (minutes: number): Date => {
   const date = new Date();
   date.setHours(hours, mins, 0, 0);
   return date;
+};
+
+// Helper function to parse different date formats and normalize them
+const parseDate = (dateString: string | Date): Date => {
+  if (dateString instanceof Date) {
+    return dateString;
+  }
+
+  // Handle ISO format: "2025-09-26T18:30:00.000Z"
+  if (dateString.includes("T") && dateString.includes("Z")) {
+    return new Date(dateString);
+  }
+
+  // Handle YYYY-MM-DD format: "2025-09-26"
+  const dateOnlyRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (dateOnlyRegex.exec(dateString)) {
+    const [year, month, day] = dateString.split("-").map(Number);
+
+    if (!year || !month || !day) return new Date();
+
+    return new Date(year, month - 1, day, 0, 0, 0, 0);
+  }
+
+  // Handle "DD Month, YYYY" format: "27 September, 2025"
+  if (dateString.includes(",")) {
+    return new Date(dateString);
+  }
+
+  // Fallback to Date constructor
+  return new Date(dateString);
+};
+
+// Helper function to convert Date to ISO string (your required format)
+const dateToISOString = (date: Date): string => {
+  // Create a new date at noon to avoid timezone issues
+  const localDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    12, // Set to noon to avoid timezone edge cases
+    0,
+    0,
+    0,
+  );
+  return localDate.toISOString();
+};
+
+// Helper function to convert ISO string to YYYY-MM-DD format for HTML date input
+const isoToDateInputValue = (isoString: string): string => {
+  const date = parseDate(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// Helper function to convert HTML date input value (YYYY-MM-DD) to ISO string
+const dateInputValueToISO = (dateValue: string): string => {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  if (!year || !month || !day) return new Date().toISOString();
+
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0); // Set to noon
+
+  return date.toISOString();
 };
 
 export const NewScheduleDialog: React.FC<Props> = ({
@@ -145,9 +208,16 @@ export const NewScheduleDialog: React.FC<Props> = ({
   const handleAddForm = async (formData: CreateEventScheduleData) => {
     console.log("[New Schedule] formData", formData);
 
+    // Parse the date and convert to ISO string
+    const parsedDate = parseDate(formData.date);
+    const isoDateString = dateToISOString(parsedDate);
+
+    console.log("parsedDate", parsedDate);
+    console.log("isoDateString", isoDateString);
+
     const data = await createScheduleMutation.mutateAsync({
       title: formData.title,
-      date: formData.date,
+      date: isoDateString,
       startTime: convertDateTimeToMin(startTime),
       endTime: convertDateTimeToMin(endTime),
       venue: formData.venue,
@@ -170,9 +240,15 @@ export const NewScheduleDialog: React.FC<Props> = ({
   // update form
   const handleUpdateForm = async (formData: CreateEventScheduleData) => {
     if (!data?.id) return;
+
+    // Parse the date and convert to ISO string
+    const parsedDate = parseDate(formData.date);
+    const isoDateString = dateToISOString(parsedDate);
+
     const res = await updateScheduleMutation.mutateAsync({
       id: data?.id,
       ...formData,
+      date: isoDateString,
       startTime: convertDateTimeToMin(startTime),
       endTime: convertDateTimeToMin(endTime),
     });
@@ -328,7 +404,7 @@ export const NewScheduleDialog: React.FC<Props> = ({
                   )}
                 />
 
-                {/* Event Date */}
+                {/* Event Date - Using Native HTML Date Input */}
                 <FormField
                   control={form.control}
                   name="date"
@@ -341,26 +417,27 @@ export const NewScheduleDialog: React.FC<Props> = ({
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <DatePicker
+                        <input
+                          type="date"
+                          className="mt-2 flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          min="2025-01-01"
+                          max="2025-12-31"
                           value={
-                            field.value ? new Date(field.value) : undefined
+                            field.value ? isoToDateInputValue(field.value) : ""
                           }
-                          onChange={(date) => {
-                            if (date) {
-                              const year = date.getFullYear();
-                              const month = String(
-                                date.getMonth() + 1,
-                              ).padStart(2, "0");
-                              const day = String(date.getDate()).padStart(
-                                2,
-                                "0",
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const isoString = dateInputValueToISO(
+                                e.target.value,
                               );
-                              const dateString = `${year}-${month}-${day}`;
-                              field.onChange(dateString);
+
+                              console.log("ISO String:", isoString);
+                              field.onChange(isoString);
                             }
                           }}
                         />
                       </FormControl>
+
                       <FormMessage className="px-1" />
                     </FormItem>
                   )}
