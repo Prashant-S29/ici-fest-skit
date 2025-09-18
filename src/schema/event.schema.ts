@@ -113,11 +113,11 @@ export const CoordinatorManagedData = z.object({
   shortDescription: z
     .string()
     .min(1, "At least 1 words are required.")
-    .max(600, "Maximum 600 words are allowed."),
+    .max(2000, "Maximum 2000 words are allowed."),
   description: z
     .string()
     .min(1, "At least 1 words are required.")
-    .max(600, "Maximum 600 words are allowed."),
+    .max(5000, "Maximum 5000 words are allowed."),
 
   // assets
   whatsappGroupURL: z.string().url("WhatsApp group URL must be a valid URL."),
