@@ -74,18 +74,10 @@ export const publicScheduleRouter = createTRPCRouter({
           }),
         ]);
 
-        // format date
-        const formattedSchedules = schedules.map((schedule) => {
-          const { date, ...rest } = schedule;
-          return {
-            ...rest,
-            date: formatDate(date),
-          };
-        });
-
+     
         return {
           data: {
-            formattedSchedules,
+            schedules,
             pagination: {
               currentPage: page,
               totalPages: Math.ceil(totalCount / limit),
