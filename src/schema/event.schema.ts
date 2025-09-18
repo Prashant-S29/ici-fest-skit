@@ -182,13 +182,13 @@ export const EventSchema = z.object({
   registrationForm: z
     .array(EventRegistrationFormSchema)
     // .min(1, "At least one Registration Form is required.")
-    .max(7, "Maximum 7 Registration Forms are allowed."),
+    .max(10, "Maximum 10 Registration Forms are allowed."),
 
   // Coordinators
   coordinators: z
     .array(EventCoordinatorSchema)
     // .min(1, "At least one coordinator is required.")
-    .max(3, "Maximum 3 coordinators are allowed."),
+    .max(10, "Maximum 10 coordinators are allowed."),
 
   // review request status
   reviewRequestStatus: ReviewRequestStatusSchema.default("NONE").optional(),
