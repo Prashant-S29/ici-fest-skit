@@ -427,53 +427,6 @@ export const eventRouter = createTRPCRouter({
       }
     }),
 
-  // Optimized: Use transactions properly
-  updateEventById: adminProcedure
-    .input(PartialUpdateEventSchema)
-    .mutation(async ({ ctx, input }) => {
-      try {
-        const { schedule, registrationForm, coordinators, id, ...rest } = input;
-
-        return await ctx.db.$transaction(async (tx) => {
-          return tx.event.update({
-            where: { id },
-            data: {
-              ...rest,
-              schedule: schedule
-                ? {
-                    deleteMany: {},
-                    create: schedule.map(
-                      ({ id: _, eventId: __, ...restSchedule }) => restSchedule,
-                    ),
-                  }
-                : undefined,
-              registrationForm: registrationForm
-                ? {
-                    deleteMany: {},
-                    create: registrationForm.map(
-                      ({ id: _, eventId: __, ...restForm }) => restForm,
-                    ),
-                  }
-                : undefined,
-              coordinators: coordinators
-                ? {
-                    deleteMany: {},
-                    create: coordinators.map(
-                      ({ id: _, eventId: __, ...restCoordinator }) =>
-                        restCoordinator,
-                    ),
-                  }
-                : undefined,
-            },
-          });
-        });
-      } catch (error) {
-        console.error(`Error updating event ${input.id}:`, error);
-        throw error;
-      }
-    }),
-
-  // Optimized: Use transactions properly
   updateEventBySlug: adminProcedure
     .input(PartialUpdateEventSchema)
     .mutation(async ({ ctx, input }) => {
@@ -482,41 +435,247 @@ export const eventRouter = createTRPCRouter({
           input;
 
         return await ctx.db.$transaction(async (tx) => {
-          return tx.event.update({
+          // First get the event ID
+          const event = await tx.event.findUnique({
             where: { slug },
-            data: {
-              ...rest,
-              schedule: schedule
-                ? {
-                    deleteMany: {},
-                    create: schedule.map(
-                      ({ id: _, eventId: __, ...restSchedule }) => restSchedule,
-                    ),
-                  }
-                : undefined,
-              registrationForm: registrationForm
-                ? {
-                    deleteMany: {},
-                    create: registrationForm.map(
-                      ({ id: _, eventId: __, ...restForm }) => restForm,
-                    ),
-                  }
-                : undefined,
-              coordinators: coordinators
-                ? {
-                    deleteMany: {},
-                    create: coordinators.map(
-                      ({ id: _, eventId: __, ...restCoordinator }) =>
-                        restCoordinator,
-                    ),
-                  }
-                : undefined,
+            select: { id: true },
+          });
+
+          if (!event) {
+            throw new Error(`Event with slug ${slug} not found`);
+          }
+
+          const updates = [];
+
+          // Update main event data if there are changes
+          if (Object.keys(rest).length > 0) {
+            updates.push(
+              tx.event.update({
+                where: { slug },
+                data: rest,
+              }),
+            );
+          }
+
+          // Only update schedule if provided
+          if (schedule !== undefined) {
+            updates.push(
+              tx.eventSchedule.deleteMany({ where: { eventId: event.id } }),
+              tx.eventSchedule.createMany({
+                data: schedule.map(
+                  ({
+                    id: itemId,
+                    eventId: originalEventId,
+                    ...restSchedule
+                  }) => ({
+                    eventId: event.id,
+                    ...restSchedule,
+                  }),
+                ),
+              }),
+            );
+          }
+
+          // Only update registration form if provided
+          if (registrationForm !== undefined) {
+            updates.push(
+              tx.eventRegistrationForm.deleteMany({
+                where: { eventId: event.id },
+              }),
+              tx.eventRegistrationForm.createMany({
+                data: registrationForm.map(
+                  ({ id: itemId, eventId: originalEventId, ...restForm }) => ({
+                    eventId: event.id,
+                    ...restForm,
+                  }),
+                ),
+              }),
+            );
+          }
+
+          // Only update coordinators if provided
+          if (coordinators !== undefined) {
+            updates.push(
+              tx.eventCoordinator.deleteMany({
+                where: { eventId: event.id },
+              }),
+              tx.eventCoordinator.createMany({
+                data: coordinators.map(
+                  ({
+                    id: itemId,
+                    eventId: originalEventId,
+                    ...restCoordinator
+                  }) => ({
+                    eventId: event.id,
+                    ...restCoordinator,
+                  }),
+                ),
+              }),
+            );
+          }
+
+          // Execute all updates
+          await Promise.all(updates);
+
+          // Return updated event with relations
+          return tx.event.findUnique({
+            where: { slug },
+            include: {
+              schedule: true,
+              registrationForm: true,
+              coordinators: true,
             },
           });
         });
       } catch (error) {
         console.error(`Error updating event ${input.slug}:`, error);
         throw error;
+      }
+    }),
+  // Fixed and optimized updateEventById procedure
+  updateEventById: adminProcedure
+    .input(PartialUpdateEventSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const { schedule, registrationForm, coordinators, id, ...rest } = input;
+
+        // Validate that id is provided
+        if (!id) {
+          throw new Error("Event ID is required for update");
+        }
+
+        // If only updating main event fields, skip transaction
+        if (!schedule && !registrationForm && !coordinators) {
+          return await ctx.db.event.update({
+            where: { id },
+            data: rest,
+          });
+        }
+
+        return await ctx.db.$transaction(async (tx) => {
+          // Store operations to execute
+          const operations: Promise<unknown>[] = [];
+
+          // Main event update
+          if (Object.keys(rest).length > 0) {
+            operations.push(tx.event.update({ where: { id }, data: rest }));
+          }
+
+          // Handle schedule updates
+          if (schedule !== undefined) {
+            operations.push(
+              tx.eventSchedule.deleteMany({ where: { eventId: id } }),
+            );
+
+            if (schedule.length > 0) {
+              // Filter out invalid schedules and properly map data
+              const validSchedules = schedule
+                .filter((item) => item.title && item.date && item.venue)
+                .map(
+                  ({
+                    id: scheduleId,
+                    eventId: originalEventId,
+                    ...scheduleRest
+                  }) => ({
+                    eventId: id, // Use the main event ID
+                    ...scheduleRest,
+                  }),
+                );
+
+              if (validSchedules.length > 0) {
+                operations.push(
+                  tx.eventSchedule.createMany({
+                    data: validSchedules,
+                    skipDuplicates: true,
+                  }),
+                );
+              }
+            }
+          }
+
+          // Handle registration form updates
+          if (registrationForm !== undefined) {
+            operations.push(
+              tx.eventRegistrationForm.deleteMany({ where: { eventId: id } }),
+            );
+
+            if (registrationForm.length > 0) {
+              // Filter and properly map registration form data
+              const validRegistrationForms = registrationForm
+                .filter((item) => item.title && item.formURL !== undefined)
+                .map(
+                  ({ id: formId, eventId: originalEventId, ...formRest }) => ({
+                    eventId: id, // Use the main event ID, ensure it's string
+                    ...formRest,
+                  }),
+                );
+
+              if (validRegistrationForms.length > 0) {
+                operations.push(
+                  tx.eventRegistrationForm.createMany({
+                    data: validRegistrationForms,
+                    skipDuplicates: true,
+                  }),
+                );
+              }
+            }
+          }
+
+          // Handle coordinators updates
+          if (coordinators !== undefined) {
+            operations.push(
+              tx.eventCoordinator.deleteMany({ where: { eventId: id } }),
+            );
+
+            if (coordinators.length > 0) {
+              // Filter and properly map coordinator data
+              const validCoordinators = coordinators
+                .filter((item) => item.name && item.mobile && item.branch)
+                .map(
+                  ({
+                    id: coordinatorId,
+                    eventId: originalEventId,
+                    ...coordinatorRest
+                  }) => ({
+                    eventId: id, // Use the main event ID, ensure it's string
+                    ...coordinatorRest,
+                  }),
+                );
+
+              if (validCoordinators.length > 0) {
+                operations.push(
+                  tx.eventCoordinator.createMany({
+                    data: validCoordinators,
+                    skipDuplicates: true,
+                  }),
+                );
+              }
+            }
+          }
+
+          // Execute all operations concurrently
+          await Promise.all(operations);
+
+          // Return the updated event with minimal data
+          return await tx.event.findUnique({
+            where: { id },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              updatedAt: true,
+            },
+          });
+        });
+      } catch (error) {
+        console.error(`Error updating event ${input.id}:`, error);
+
+        // Provide more specific error handling
+        if (error instanceof Error) {
+          throw new Error(`Failed to update event: ${error.message}`);
+        }
+
+        throw new Error("Unknown error occurred while updating event");
       }
     }),
 

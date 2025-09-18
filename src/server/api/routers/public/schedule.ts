@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+import { formatDate } from "@/utils/timeHandler";
 
 const PaginationSchema = z.object({
   page: z.number().min(1).optional().default(1),
@@ -73,9 +74,18 @@ export const publicScheduleRouter = createTRPCRouter({
           }),
         ]);
 
+        // format date
+        const formattedSchedules = schedules.map((schedule) => {
+          const { date, ...rest } = schedule;
+          return {
+            ...rest,
+            date: formatDate(date),
+          };
+        });
+
         return {
           data: {
-            schedules,
+            formattedSchedules,
             pagination: {
               currentPage: page,
               totalPages: Math.ceil(totalCount / limit),
