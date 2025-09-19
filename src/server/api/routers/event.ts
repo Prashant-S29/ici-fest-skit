@@ -355,75 +355,75 @@ export const eventRouter = createTRPCRouter({
         );
 
         // Parallel validation instead of sequential
-        // const [existingSlug, existingEmail] = await Promise.all([
-        //   ctx.db.event.findUnique({
-        //     where: { slug: input.slug },
-        //     select: { id: true },
-        //   }),
-        //   ctx.db.event.findUnique({
-        //     where: { coordinatorEmail: input.coordinatorEmail },
-        //     select: { id: true },
-        //   }),
-        // ]);
+        const [existingSlug, existingEmail] = await Promise.all([
+          ctx.db.event.findUnique({
+            where: { slug: input.slug },
+            select: { id: true },
+          }),
+          ctx.db.event.findUnique({
+            where: { coordinatorEmail: input.coordinatorEmail },
+            select: { id: true },
+          }),
+        ]);
 
-        // if (existingSlug) {
-        //   return {
-        //     data: null,
-        //     error: "SLUG_EXISTS",
-        //     message: "An event with this slug already exists",
-        //   };
-        // }
+        if (existingSlug) {
+          return {
+            data: null,
+            error: "SLUG_EXISTS",
+            message: "An event with this slug already exists",
+          };
+        }
 
-        // if (existingEmail) {
-        //   return {
-        //     data: null,
-        //     error: "COORDINATOR_EMAIL_EXISTS",
-        //     message: "An event with this coordinator email already exists",
-        //   };
-        // }
+        if (existingEmail) {
+          return {
+            data: null,
+            error: "COORDINATOR_EMAIL_EXISTS",
+            message: "An event with this coordinator email already exists",
+          };
+        }
 
-        // const event = await ctx.db.event.create({
-        //   data: {
-        //     slug: input.slug,
-        //     dbPassword: input.dbPassword,
-        //     coordinatorEmail: input.coordinatorEmail,
-        //     title: input.title,
-        //     shortDescription: input.shortDescription,
-        //     description: input.description,
-        //     coverImage: input.coverImage,
-        //     category: input.category,
-        //     images: input.images,
-        //     durationInDays: input.durationInDays,
-        //     registrationType: input.registrationType,
-        //     registrationStatus: input.registrationStatus,
-        //     isHidden: input.isHidden,
-        //     schedule: {
-        //       create: input.schedule.map((item) => ({
-        //         ...item,
-        //         date: formatDate(item.date),
-        //       })),
-        //     },
-        //     registrationForm: {
-        //       create: input.registrationForm,
-        //     },
-        //     coordinators: {
-        //       create: input.coordinators,
-        //     },
-        //     coordinatorManagedData: {
-        //       create: {
-        //         brochure: "",
-        //         coverImage: "",
-        //         images: [],
-        //         judgementCriteria: "",
-        //         disqualificationCriteria: "",
-        //         whatsappGroupURL: "",
-        //         shortDescription: "",
-        //         description: "",
-        //         materialsProvided: "",
-        //       },
-        //     },
-        //   },
-        // });
+        const event = await ctx.db.event.create({
+          data: {
+            slug: input.slug,
+            dbPassword: input.dbPassword,
+            coordinatorEmail: input.coordinatorEmail,
+            title: input.title,
+            shortDescription: input.shortDescription,
+            description: input.description,
+            coverImage: input.coverImage,
+            category: input.category,
+            images: input.images,
+            durationInDays: input.durationInDays,
+            registrationType: input.registrationType,
+            registrationStatus: input.registrationStatus,
+            isHidden: input.isHidden,
+            schedule: {
+              create: input.schedule.map((item) => ({
+                ...item,
+                date: formatDate(item.date),
+              })),
+            },
+            registrationForm: {
+              create: input.registrationForm,
+            },
+            coordinators: {
+              create: input.coordinators,
+            },
+            coordinatorManagedData: {
+              create: {
+                brochure: "",
+                coverImage: "",
+                images: [],
+                judgementCriteria: "",
+                disqualificationCriteria: "",
+                whatsappGroupURL: "",
+                shortDescription: "",
+                description: "",
+                materialsProvided: "",
+              },
+            },
+          },
+        });
 
         return {
           data: [],
