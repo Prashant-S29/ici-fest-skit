@@ -155,6 +155,9 @@ export const CreateEventForm: React.FC<Props> = ({ data, state }) => {
         return;
       }
 
+
+      console.log("formData", formData);
+
       const createEventRes = await createEventMutation.mutateAsync(formData);
       if (createEventRes.error) {
         toast.error(createEventRes.message);
@@ -162,8 +165,8 @@ export const CreateEventForm: React.FC<Props> = ({ data, state }) => {
       }
       toast.success("Event created successfully");
 
-      form.reset(EVENT_FORM_DEFAULTS);
-      router.back();
+      // form.reset(EVENT_FORM_DEFAULTS);
+      // router.back();
     } catch (error) {
       toast.error(`Error in ${data ? "updating" : "creating"} event`, {
         description: JSON.stringify(error),

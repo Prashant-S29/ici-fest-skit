@@ -134,7 +134,25 @@ export const convertDateTimeToMin = (date: Date): number => {
 };
 
 export const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString("en-US", {
+  // Method 1: Parse date parts manually (Most reliable)
+
+  if (date.includes("T")) {
+    const [year, month, day] = (date.split("T")[0] ?? "")
+      .split("-")
+      .map(Number);
+    const safeDate = new Date(year ?? 0, (month ?? 0) - 1, day ?? 0); // month is 0-indexed
+
+    return safeDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "2-digit",
+    });
+  }
+
+  const [year, month, day] = date.split("-").map(Number);
+  const safeDate = new Date(year ?? 0, (month ?? 0) - 1, day ?? 0); // month is 0-indexed
+
+  return safeDate.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "2-digit",

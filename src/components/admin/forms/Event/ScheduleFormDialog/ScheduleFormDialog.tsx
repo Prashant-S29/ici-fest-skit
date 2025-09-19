@@ -224,14 +224,27 @@ export const ScheduleFormDialog: React.FC<Props> = ({
   })();
 
   const formatFormData = (formData: CreateEventScheduleData) => {
+    console.log("formData.date", formData.date); // "2025-09-27T06:30:00.000Z"
+
+    // Method 1: Extract date part directly from ISO string (Fastest)
+    const simpleDateString = formData.date.split("T")[0] ?? ""; // "2025-09-27"
+
+    // Method 2: Using Date object with UTC methods (Most reliable)
+    // const dateObj = new Date(formData.date);
+    // const simpleDateString = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+
+    // Method 3: Using toISOString and splitting (Alternative)
+    // const simpleDateString = new Date(formData.date).toISOString().split('T')[0];
+
+    console.log("Simple date string:", simpleDateString); // "2025-09-27"
+
     return {
       ...formData,
       startTime: convertDateStringToMin(startTime.toString()),
       endTime: convertDateStringToMin(endTime.toString()),
-      date: convertDateTimeToDate(formData.date),
+      date: simpleDateString, // Store as "YYYY-MM-DD"
     };
   };
-
   if (!isMounted) {
     return <PageLoader />;
   }

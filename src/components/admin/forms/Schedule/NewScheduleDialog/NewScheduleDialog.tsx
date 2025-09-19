@@ -208,16 +208,10 @@ export const NewScheduleDialog: React.FC<Props> = ({
   const handleAddForm = async (formData: CreateEventScheduleData) => {
     console.log("[New Schedule] formData", formData);
 
-    // Parse the date and convert to ISO string
-    const parsedDate = parseDate(formData.date);
-    const isoDateString = dateToISOString(parsedDate);
-
-    console.log("parsedDate", parsedDate);
-    console.log("isoDateString", isoDateString);
-
+    const simpleDateString = formData.date.split("T")[0] ?? ""; // "2025-09-27"
     const data = await createScheduleMutation.mutateAsync({
       title: formData.title,
-      date: isoDateString,
+      date: simpleDateString,
       startTime: convertDateTimeToMin(startTime),
       endTime: convertDateTimeToMin(endTime),
       venue: formData.venue,
